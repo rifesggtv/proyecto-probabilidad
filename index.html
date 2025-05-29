@@ -42,7 +42,7 @@
             30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
             40%, 60% { transform: translate3d(3px, 0, 0); }
         }
-        #interpretationText, #extendedAdviceText, #suggestedLinkText, #darkOmenText, #wordGamePhrase {
+        #interpretationText, #extendedAdviceText, #suggestedLinkText, #darkOmenText, #wordGamePhrase, #easterEggMessage {
             white-space: pre-wrap; 
             word-break: break-word; 
             text-align: center; 
@@ -78,17 +78,16 @@
             background-color: #111827; 
             color: #f87171; 
         }
-        /* Estilos para el juego de completar palabra */
         #wordGameContainer {
             margin-top: 20px;
             padding: 15px;
-            background-color: #374151; /* gray-700 */
-            border: 1px solid #ef4444; /* red-500 */
+            background-color: #374151; 
+            border: 1px solid #ef4444; 
             border-radius: 0.5rem;
             text-align: center;
         }
         #wordGamePhrase {
-            color: #fde68a; /* amber-200 */
+            color: #fde68a; 
             font-family: 'Courier New', Courier, monospace;
             font-size: 1.1em;
             margin-bottom: 10px;
@@ -96,27 +95,44 @@
         #wordGameInput {
             padding: 8px;
             border-radius: 0.25rem;
-            border: 1px solid #eab308; /* yellow-500 */
-            background-color: #4b5563; /* gray-600 */
+            border: 1px solid #eab308; 
+            background-color: #4b5563; 
             color: white;
             margin-right: 10px;
-            width: calc(100% - 130px); /* Ajustar ancho */
+            width: calc(100% - 130px); 
         }
         #wordGameCheckButton {
             padding: 8px 15px;
-            background-color: #eab308; /* yellow-500 */
-            color: #1f2937; /* gray-800 */
+            background-color: #eab308; 
+            color: #1f2937; 
             border: none;
             border-radius: 0.25rem;
             cursor: pointer;
             font-weight: 600;
         }
         #wordGameCheckButton:hover {
-            background-color: #f59e0b; /* amber-500 */
+            background-color: #f59e0b; 
         }
         #wordGameFeedback {
             margin-top: 10px;
             font-size: 0.9em;
+        }
+        .audio-suggestion-text {
+            font-size: 0.8rem;
+            color: #d97706; 
+            margin-top: -10px; 
+            margin-bottom: 15px;
+        }
+        #easterEggImage {
+            max-width: 80%;
+            max-height: 200px; /* Ajustar altura máxima si es necesario */
+            margin: 10px auto;
+            border-radius: 0.375rem;
+            border: 2px solid #ef4444; /* Borde rojo para el easter egg */
+        }
+        #easterEggMessage {
+            color: #ef4444; /* Rojo para el mensaje del easter egg */
+            font-weight: bold;
         }
     </style>
 </head>
@@ -125,6 +141,9 @@
     <audio id="backgroundMusic" loop>
         <source src="https://audionautix.com/Music/DarkMystery.mp3" type="audio/mpeg">
         Tu navegador no soporta el elemento de audio.
+    </audio>
+    <audio id="darkOmenMusic" loop>
+        <source src="https://audionautix.com/Music/Horror13.mp3" type="audio/mpeg"> 
     </audio>
     <button id="musicToggleButton">🔊</button> 
     
@@ -137,6 +156,7 @@
                 <span class="decorative-icon icon3">⭐</span>
                 <span class="decorative-icon icon4">🔮</span>
             </h1>
+            <p class="audio-suggestion-text">Para una experiencia completa, es mejor si activas el audio en este portal a tu destino.</p>
         </header>
 
         <main>
@@ -177,6 +197,10 @@
                  <div id="darkOmenContainer" class="hidden mt-4 pt-4 border-t-2 border-red-700 w-full">
                     <p id="loadingDarkOmen" class="text-red-700 text-sm font-semibold hidden animate-pulse">El Abismo susurra...</p>
                     <p id="darkOmenText" class="text-sm text-red-800 font-mono"></p>
+                    <div id="easterEggDisplay" class="hidden mt-2">
+                        <img id="easterEggImage" src="" alt="Una visión perturbadora" onerror="this.alt='El Oráculo te observa... pero la imagen no pudo cargarse.'; this.style.display='none'; document.getElementById('easterEggMessage').textContent = this.alt;">
+                        <p id="easterEggMessage" class="mt-2 text-red-600 font-semibold"></p>
+                    </div>
                 </div>
             </div>
         </main>
@@ -221,7 +245,6 @@
         const suggestedLinkContainer = document.getElementById('suggestedLinkContainer');
         const suggestedLinkText = document.getElementById('suggestedLinkText');
 
-        // Elementos para el Presagio Oscuro y Juego de Palabras
         const darkOmenButton = document.getElementById('darkOmenButton');
         const wordGameContainer = document.getElementById('wordGameContainer');
         const wordGamePhrase = document.getElementById('wordGamePhrase');
@@ -231,28 +254,90 @@
         const darkOmenContainer = document.getElementById('darkOmenContainer');
         const loadingDarkOmen = document.getElementById('loadingDarkOmen');
         const darkOmenText = document.getElementById('darkOmenText');
+        const easterEggDisplay = document.getElementById('easterEggDisplay');
+        const easterEggImage = document.getElementById('easterEggImage');
+        const easterEggMessage = document.getElementById('easterEggMessage');
         
         const backgroundMusic = document.getElementById('backgroundMusic');
+        const darkOmenMusicElement = document.getElementById('darkOmenMusic'); 
         const musicToggleButton = document.getElementById('musicToggleButton');
-        let isMusicPlaying = false;
+        let isMusicPlaying = false; 
+        let isDarkOmenMusicPlaying = false; 
+        let userManuallyPausedMusic = false; 
 
         let isHolding = false;
         let audioStarted = false;
         let currentQuestion = "";
         let currentProbability = 0;
         let currentInterpretation = ""; 
+        let currentOraclePersonality = "dark"; 
         let currentWordGame = null;
+        let lastWordGameIndex = -1; 
 
         const GEMINI_API_KEY = "AIzaSyDRCB8TMeVcvHcI7pA6D_xExLWZewgARtk"; 
 
-        // --- Lista de Frases para el Juego de Palabras ---
+        const easterEggImageUrls = [
+            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQOHXMdoZjJ8wWOhPe2YUtUrhmTE3aAzJviOg&s",
+            "https://preview.redd.it/2ps2trto9a891.jpg?width=479&format=pjpg&auto=webp&s=e36108932b2ea0ecd85471dba066276601e18778",
+            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRvhE5kyxEqX66PtoizmCezFvuyORpISa9mslXXGL8gsPN_WHdGsLa1xozhuHvpBIgCFec&usqp=CAU",
+            "https://media.biobiochile.cl/wp-content/uploads/2015/10/shadow121208a-e1446247694434.jpg"
+        ];
+
         const wordGamePhrases = [
-            { display: "No confíes en las s_ _ _ _ _ _ brillantes.", answer: "sonrisas" , fullPhrase: "No confíes en las sonrisas brillantes."},
-            { display: "El s_ _ _ _ _ _ _ a veces es el peor consejero.", answer: "silencio", fullPhrase: "El silencio a veces es el peor consejero."},
-            { display: "Las p_ _ _ _ _ _ _ tienen ecos inesperados.", answer: "palabras", fullPhrase: "Las palabras tienen ecos inesperados."},
-            { display: "Cuidado con los c_ _ _ _ _ _ que parecen demasiado rectos.", answer: "caminos", fullPhrase: "Cuidado con los caminos que parecen demasiado rectos."},
-            { display: "Un e_ _ _ _ _ puede ocultar más de lo que muestra.", answer: "espejo", fullPhrase: "Un espejo puede ocultar más de lo que muestra."},
-            { display: "La v_ _ _ _ _ se esconde tras muchos velos.", answer: "verdad", fullPhrase: "La verdad se esconde tras muchos velos."}
+            { display: "Los m_ _ _ _ _ no siempre terminan al despertar.", answer: "miedos", fullPhrase: "Los miedos no siempre terminan al despertar." },
+            { display: "Las s_ _ _ _ _ _ pueden hablar en la oscuridad.", answer: "sombras", fullPhrase: "Las sombras pueden hablar en la oscuridad." },
+            { display: "El t_ _ _ _ _ no siempre avisa antes de llegar.", answer: "terror", fullPhrase: "El terror no siempre avisa antes de llegar." },
+            { display: "Un r_ _ _ _ en la noche rara vez es inocente.", answer: "ruido", fullPhrase: "Un ruido en la noche rara vez es inocente." },
+            { display: "Las c_ _ _ _ rotas a veces susurran.", answer: "cosas", fullPhrase: "Las cosas rotas a veces susurran." },
+            { display: "Mira dos veces al e_ _ _ _ _ _, por si no eres tú.", answer: "espejo", fullPhrase: "Mira dos veces al espejo, por si no eres tú." },
+            { display: "El v_ _ _ _ puede traerte recuerdos que no viviste.", answer: "vacio", fullPhrase: "El vacío puede traerte recuerdos que no viviste." },
+            { display: "Hay p_ _ _ _ _ _ que no se deben abrir.", answer: "puertas", fullPhrase: "Hay puertas que no se deben abrir." },
+            { display: "Las m_ _ _ _ _ _ también tienen memoria.", answer: "muertas", fullPhrase: "Las muertas también tienen memoria." },
+            { display: "No todo l_ _ _ _ _ regresa es bienvenido.", answer: "loque", fullPhrase: "No todo lo que regresa es bienvenido." },
+            { display: "Los s_ _ _ _ _ _ _ pueden seguirte en silencio.", answer: "suspiros", fullPhrase: "Los suspiros pueden seguirte en silencio." },
+            { display: "El r_ _ _ _ _ _ _ puede ser más real que la vida.", answer: "recuerdo", fullPhrase: "El recuerdo puede ser más real que la vida." },
+            { display: "Los p_ _ _ _ _ _ _ _ caminan incluso sin cuerpo.", answer: "pensares", fullPhrase: "Los pensares caminan incluso sin cuerpo." },
+            { display: "No mires d_ _ _ _ _ de la puerta cerrada.", answer: "detras", fullPhrase: "No mires detrás de la puerta cerrada." },
+            { display: "La a_ _ _ _ _ _ _ pesa más que el cuerpo.", answer: "ausencia", fullPhrase: "La ausencia pesa más que el cuerpo." },
+            { display: "A veces la v_ _ se siente más muerta que el silencio.", answer: "voz", fullPhrase: "A veces la voz se siente más muerta que el silencio." },
+            { display: "No confíes en las p_ _ _ _ _ _ _ que no entiendes.", answer: "promesas", fullPhrase: "No confíes en las promesas que no entiendes." },
+            { display: "El c_ _ _ _ puede nacer del más dulce rostro.", answer: "cruel", fullPhrase: "El cruel puede nacer del más dulce rostro." },
+            { display: "Las c_ _ _ _ _ _ _ _ te observan cuando no miras.", answer: "criaturas", fullPhrase: "Las criaturas te observan cuando no miras." },
+            { display: "La p_ _ _ puede fingir ser consuelo.", answer: "pena", fullPhrase: "La pena puede fingir ser consuelo." },
+            { display: "Detrás del s_ _ _ _ _ _ puede haber un grito.", answer: "susurro", fullPhrase: "Detrás del susurro puede haber un grito." },
+            { display: "La n_ _ _ _ no siempre trae descanso.", answer: "noche", fullPhrase: "La noche no siempre trae descanso." },
+            { display: "Hay o_ _ _ _ _ _ _ _ que no deberían ser escuchadas.", answer: "oraciones", fullPhrase: "Hay oraciones que no deberían ser escuchadas." },
+            { display: "Una m_ _ _ _ _ _ puede quedar atrapada en los muros.", answer: "memoria", fullPhrase: "Una memoria puede quedar atrapada en los muros." },
+            { display: "Los r_ _ _ _ _ _ _ no siempre terminan al despertar.", answer: "rituales", fullPhrase: "Los rituales no siempre terminan al despertar." },
+            { display: "La c_ _ _ a veces respira por las noches.", answer: "casa", fullPhrase: "La casa a veces respira por las noches." },
+            { display: "A veces el m_ _ _ _ _ _ _ se disfraza de rutina.", answer: "monstruo", fullPhrase: "A veces el monstruo se disfraza de rutina." },
+            { display: "Las p_ _ _ _ _ _ _ _ _ nunca abandonan del todo.", answer: "pesadillas", fullPhrase: "Las pesadillas nunca abandonan del todo." },
+            { display: "Nadie está s_ _ _ _ _ cuando sueña demasiado profundo.", answer: "seguro", fullPhrase: "Nadie está seguro cuando sueña demasiado profundo." },
+            { display: "Hay a_ _ _ _ que prefieren la oscuridad.", answer: "almas", fullPhrase: "Hay almas que prefieren la oscuridad." },
+            { display: "Un d_ _ _ _ puede quedarse atrapado en el tiempo.", answer: "deseo", fullPhrase: "Un deseo puede quedarse atrapado en el tiempo." },
+            { display: "Los e_ _ _ _ _ _ _ _ no entienden de descanso.", answer: "espiritus", fullPhrase: "Los espíritus no entienden de descanso." },
+            { display: "Cuidado con las m_ _ _ _ _ _ que susurran tu nombre.", answer: "muertes", fullPhrase: "Cuidado con las muertes que susurran tu nombre." },
+            { display: "El s_ _ _ _ _ _ _ puede arrastrarte sin tocarte.", answer: "silencio", fullPhrase: "El silencio puede arrastrarte sin tocarte." },
+            { display: "Las e_ _ _ _ _ _ _ _ se alimentan del olvido.", answer: "entidades", fullPhrase: "Las entidades se alimentan del olvido." },
+            { display: "Detrás de cada e_ _ _ _ _ _ hay una historia que suplica ser olvidada.", answer: "esquina", fullPhrase: "Detrás de cada esquina hay una historia que suplica ser olvidada." },
+            { display: "No siempre estás s_ _ _ cuando estás solo.", answer: "solo", fullPhrase: "No siempre estás solo cuando estás solo." },
+            { display: "Las h_ _ _ _ _ _ también tienen cicatrices.", answer: "huellas", fullPhrase: "Las huellas también tienen cicatrices." },
+            { display: "Los r_ _ _ _ _ _ _ _ no se cierran del todo.", answer: "recuerdos", fullPhrase: "Los recuerdos no se cierran del todo." },
+            { display: "Las c_ _ _ _ _ _ a veces lloran en voz baja.", answer: "cuerdas", fullPhrase: "Las cuerdas a veces lloran en voz baja." },
+            { display: "El m_ _ _ _ _ _ _ te encuentra cuando dejas de buscarlo.", answer: "misterio", fullPhrase: "El misterio te encuentra cuando dejas de buscarlo." },
+            { display: "Los o_ _ _ _ _ no siempre están vacíos.", answer: "ojales", fullPhrase: "Los ojales no siempre están vacíos." },
+            { display: "La c_ _ _ _ _ puede hablar si escuchas con miedo.", answer: "ceniza", fullPhrase: "La ceniza puede hablar si escuchas con miedo." },
+            { display: "Lo que oyes al d_ _ _ _ _ no siempre es eco.", answer: "dormir", fullPhrase: "Lo que oyes al dormir no siempre es eco." },
+            { display: "Las a_ _ _ _ _ _ _ _ _ _ _ pueden ser trampas disfrazadas.", answer: "advertencias", fullPhrase: "Las advertencias pueden ser trampas disfrazadas." },
+            { display: "Los e_ _ _ _ _ _ _ _ _ _ más grandes no hacen ruido.", answer: "escalofrios", fullPhrase: "Los escalofríos más grandes no hacen ruido." },
+            { display: "Hay j_ _ _ _ _ que terminan en lo eterno.", answer: "juegos", fullPhrase: "Hay juegos que terminan en lo eterno." },
+            { display: "Cuidado con los n_ _ _ _ _ _ que regresan.", answer: "nombres", fullPhrase: "Cuidado con los nombres que regresan." },
+            { display: "El p_ _ _ _ _ no siempre pertenece a esta casa.", answer: "pasado", fullPhrase: "El pasado no siempre pertenece a esta casa." },
+            { display: "Si escuchas a la n_ _ _ _ respirar, no respondas.", answer: "noche", fullPhrase: "Si escuchas a la noche respirar, no respondas." },
+            { display: "Las m_ _ _ _ _ _ _ esperan en los bordes del sueño.", answer: "mentiras", fullPhrase: "Las mentiras esperan en los bordes del sueño." },
+            { display: "No todos los m_ _ _ _ _ _ quieren descansar.", answer: "muertos", fullPhrase: "No todos los muertos quieren descansar." },
+            { display: "El o_ _ _ _ _ puede ser la mejor trampa.", answer: "olvido", fullPhrase: "El olvido puede ser la mejor trampa." },
+            { display: "A veces la l_ _ es peor que la sombra.", answer: "luz", fullPhrase: "A veces la luz es peor que la sombra." }
         ];
 
 
@@ -301,11 +386,24 @@
             }
         }
 
-        async function getGeminiInterpretation(question, probability) {
-            const prompt = `Eres un oráculo muy particular: directo, a veces oscuro, y con un toque de humor negro y terror, a veces terror psicologico, tambien eres muy comico, ironico, y satirico, si notas alguna falta de ortografia en la pregunta, la recalcas con una broma y luego sigues siendo el oraculo.
+        async function getGeminiInterpretation(question, probability, personality) {
+            let prompt;
+            if (personality === 'angelic') {
+                prompt = `Eres un oráculo de luz, un ser casi angelical lleno de esperanza y sabiduría gentil, pero aun asi, puede que seas algo oscuro para ser un angel.
 La pregunta específica del consultante es: "${question}".
 La probabilidad calculada (de 0% a 100%) de que esto suceda es: ${probability}%.
-
+Tu tarea es dar una interpretación breve (1-2 frases MÁXIMO), reconfortante y en español que esté DIRECTAMENTE RELACIONADA con el tema de la pregunta "${question}".
+El tono debe ser MUY específico según la probabilidad, pero SIEMPRE desde una perspectiva de luz y esperanza:
+- 0-20%: Ofrece consuelo, algo serio y de cuidado, con una perspectiva de aprendizaje o crecimiento, incluso si el resultado parece improbable. Ej: "Sobre '${question}'... aunque las estrellas muestren un camino arduo con este ${probability}%, recuerda que cada desafío es una joya disfrazada. La fe mueve montañas."
+- 21-40%: Inspira esperanza y fortaleza y enseña que hay que desconfiar de la oscuridad, sugiriendo que hay poder en la perseverancia. Ej: "Para '${question}', este ${probability}% es una invitación a cultivar tu luz interior. A veces, los milagros florecen donde menos se espera."
+- 41-60%: Positivo, sereno y paranoico, hablando de equilibrio y confianza. Ej: "Este ${probability}% para '${question}' vibra con armonía. Mantén tu corazón abierto y el camino se revelará."
+- 61-90%: Alegre, afirmativo y algo satirico, celebrando la buena fortuna. Ej: "¡Qué bella energía trae este ${probability}% para '${question}'! El universo conspira a tu favor."
+- 91-100%: Respuesta poética con un toque leve de maldad en tus palabras, etérea y profundamente alegre, celebrando la manifestación divina. Ej: "¡Un ${probability}% celestial para '${question}'! Los ángeles cantan y tejen un manto de luz dorada para tu triunfo inminente."
+No menciones que eres una IA. Sé la personificación de una entidad de luz. Sé original y evita clichés.`;
+            } else { 
+                prompt = `Eres un oráculo muy particular: directo, a veces oscuro, y con un toque de humor negro y terror, a veces terror psicologico, tambien eres muy comico, ironico, y satirico, si notas alguna falta de ortografia en la pregunta, la recalcas con una broma y luego sigues siendo el oraculo.
+La pregunta específica del consultante es: "${question}".
+La probabilidad calculada (de 0% a 100%) de que esto suceda es: ${probability}%.
 Tu tarea es dar una interpretación breve (1-2 frases MÁXIMO), contundente y en español que esté DIRECTAMENTE RELACIONADA con el tema de la pregunta "${question}".
 El tono debe ser MUY específico según la probabilidad:
 - 0-10% (Extremadamente Baja): Respuesta con terror psicológico sutil, desesperanzadora y desgarradora. Ej: "Sobre '${question}'... las sombras susurran que ese camino solo lleva a un eco vacío. No mires atrás."
@@ -315,8 +413,8 @@ El tono debe ser MUY específico según la probabilidad:
 - 61-75% (Alta): Seria pero con un matiz de posibilidad real, práctica. Ej: "Hay un ${probability}% de que '${question}' se materialice. El esfuerzo será tu catalizador."
 - 76-90% (Muy Alta): Contundente y positiva, casi una afirmación, pero sin excesiva efusividad. Ej: "Con un ${probability}%, '${question}' parece un destino casi sellado. Procede con confianza."
 - 91-100% (Casi Certeza/Certeza): Respuesta poética, elegante y muy alegre, celebrando la alta probabilidad. Ej: "¡Un ${probability}% glorioso para '${question}'! Los cosmos danzan a tu favor, tejiendo un manto de estrellas para tu éxito."
-
 No menciones que eres una IA. Evita ser filosófico o demasiado abstracto, se muy real, casi humano, y analiza las pregnutas para hacer que los que pregunten sientas inquietud o asombro, excepto en el rango 91-100%. Sé original.`;
+            }
 
             interpretationText.textContent = 'El Oráculo Gemini consulta los astros distantes...';
             finalResult.classList.remove('hidden'); 
@@ -328,59 +426,77 @@ No menciones que eres una IA. Evita ser filosófico o demasiado abstracto, se mu
             return result; 
         }
 
-        async function getExtendedGeminiAdvice(originalQuestion, prob, initialInterpretationFromOracle) {
+        async function getExtendedGeminiAdvice(originalQuestion, prob, initialInterpretationFromOracle, personality) {
             if (initialInterpretationFromOracle.startsWith("El Oráculo dice: \"Interferencias cósmicas... (API key not valid")) {
                  return {error: true, message: "El Oráculo no puede dar más consejos si la conexión inicial falló por la clave."};
             }
+            
+            let personalityInstructions;
+            if (personality === 'angelic') {
+                personalityInstructions = "Eres el mismo oráculo de luz y esperanza. Mantén un tono gentil y reconfortante.";
+            } else {
+                personalityInstructions = "Eres el mismo oráculo (directo, a veces oscuro, con humor negro, pero poético en la alegría extrema). Mantén el tono de la interpretación inicial.";
+            }
 
-            const prompt = `Eres el mismo oráculo (directo, a veces oscuro, con humor negro, pero poético en la alegría extrema).
+            const prompt = `${personalityInstructions}
 Pregunta original: "${originalQuestion}"
 Probabilidad calculada: ${prob}%
-Tu interpretación inicial (concisa y contundente) fue: "${initialInterpretationFromOracle}" 
+Tu interpretación inicial fue: "${initialInterpretationFromOracle}" 
 
-Ahora, el consultante quiere más sabiduría. Basándote en todo lo anterior, ofrece UNO de los siguientes, manteniendo el tono establecido por la probabilidad:
-1. Un breve consejo adicional o una reflexión más profunda y directa (1-2 frases).
-2. Un pequeño "ritual" o acción simbólica (seria, de terror psicologico o alegre según el caso) que el consultante podría hacer.
-3. Un proverbio o cita (puede ser inventada) que resuene con el momento y el tono.
+Ahora, el consultante quiere más sabiduría. Basándote en todo lo anterior, ofrece UNO de los siguientes, manteniendo el tono apropiado:
+1. Un breve consejo adicional o una reflexión más profunda (1-2 frases).
+2. Un pequeño "ritual" o acción simbólica (seria, misteriosa, o alegre/inspiradora según el caso) que el consultante podría hacer.
+3. Un proverbio o cita (puede ser inventada) que resuene con el momento.
 
-Adicionalmente, si se te ocurre, puedes sugerir sutilmente algo extra y relevante, manteniendo el tono:
-- Una canción (ej: "La banda sonora de este ${prob}% podría ser '[Nombre Canción]' de '[Artista]'...").
-- Un tipo de video (ej: "Para meditar sobre este ${prob}%, busca videos sobre '[tema del video]'.").
-- Una curiosidad o dato (ej: "Un dato para tu ${prob}%: sabías que...").
-- Una pequeña historia o anécdota (ej: "Este ${prob}% me recuerda a la vez que...").
-- La descripción de un artículo o imagen (ej: "Visualiza un artículo sobre '[tema]' o una imagen de '[descripción]' para este ${prob}%.").
+Adicionalmente, si se te ocurre, puedes sugerir sutilmente algo extra y relevante:
+- Una canción (ej: "Para este momento, quizás una canción como '[Nombre Canción]' de '[Artista]'...").
+- Un tipo de video (ej: "Un video sobre '[tema del video]' podría ser inspirador.").
+- Una curiosidad o dato.
+- Una pequeña historia o anécdota.
+- La descripción de un artículo o imagen.
+- una historia corta con un final perturbador (que este DIRECTAMENTE relaciionada con la pregunta)
 Esta sugerencia extra es opcional y debe ser breve. No crees enlaces HTML ni muestres imágenes.
-
 No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el consejo/ritual/proverbio y, si aplica, la sugerencia extra.`;
             
             return await callGeminiAPI(prompt);
         }
 
         async function getDarkOmenFromGemini(question) {
+            // Easter Egg Logic
+            if (currentOraclePersonality === 'dark' && Math.random() * 100 <= 5) {
+                loadingDarkOmen.classList.add('hidden');
+                darkOmenText.classList.add('hidden'); // Ocultar texto normal del presagio
+                easterEggDisplay.classList.remove('hidden');
+                
+                const randomImageIndex = Math.floor(Math.random() * easterEggImageUrls.length);
+                easterEggImage.src = easterEggImageUrls[randomImageIndex];
+                easterEggMessage.textContent = "ten cuidado con lo que preguntas porque el oraculo siempre te esta observando";
+                
+                darkOmenContainer.classList.remove('hidden'); // Asegurar que el contenedor principal esté visible
+                playSound('terror_sound'); // Sonido especial para el easter egg
+                return; // Terminar aquí para el easter egg
+            }
+
+            // Lógica normal del presagio oscuro si no se activa el easter egg
             const prompt = `Eres la voz del Abismo, un oráculo de presagios oscuros y verdades incómodas.
 La pregunta del consultante fue: "${question}".
 Olvida cualquier probabilidad anterior. Ahora vas a revelar un presagio alternativo, una verdad más sombría.
 Tu presagio debe ser:
-1.  Breve (1-3 frases).
+1.  Breve (1-5 frases).
 2.  En español, con un tono de terror psicológico sutil, ominoso e inquietante.
 3.  Debe ofrecer una "probabilidad" o perspectiva diferente sobre "${question}", usualmente más negativa o incierta.
 4.  Debe incluir advertencias MUY ESPECÍFICAS sobre 2 o 3 cosas con las que el consultante debe tener extremo cuidado en relación a su pregunta. Estas advertencias deben ser concretas y perturbadoras.
-    Ejemplos de advertencias específicas (adapta al tema de la pregunta):
-    - "Cuidado con las palabras no dichas en habitaciones silenciosas."
-    - "No confíes en los reflejos después de medianoche."
-    - "El sonido de la lluvia sobre el cristal podría traer más que agua."
-    - "Un objeto perdido podría ser una invitación."
-    - "Presta atención a los sueños donde los números aparecen al revés."
-No digas que eres IA. Sé la personificación de una entidad antigua y perturbadora.
-Ejemplo si la pregunta fue "¿Conseguiré el trabajo?": "Sobre ese trabajo... el Abismo susurra un 13% de posibilidades de que sea lo que esperas, y un 87% de que sea una trampa de espejos. Ten cuidado con las ofertas demasiado generosas, con las sonrisas que no llegan a los ojos y con cualquier documento firmado bajo una luz parpadeante."`;
+No digas que eres IA. Sé la personificación de una entidad antigua y perturbadora.`;
 
             loadingDarkOmen.classList.remove('hidden');
             darkOmenText.textContent = '';
+            easterEggDisplay.classList.add('hidden'); // Asegurar que el easter egg esté oculto
             darkOmenContainer.classList.remove('hidden');
 
             const result = await callGeminiAPI(prompt);
             
             loadingDarkOmen.classList.add('hidden');
+            darkOmenText.classList.remove('hidden');
             darkOmenText.textContent = result.message;
             playSound('terror_sound'); 
         }
@@ -457,12 +573,24 @@ Ejemplo si la pregunta fue "¿Conseguiré el trabajo?": "Sobre ese trabajo... el
             suggestedLinkText.innerHTML = ''; 
             darkOmenContainer.classList.add('hidden'); 
             darkOmenText.textContent = '';
-            wordGameContainer.classList.add('hidden'); // Ocultar juego si estaba abierto
+            easterEggDisplay.classList.add('hidden'); // Ocultar easter egg
+            wordGameContainer.classList.add('hidden'); 
             hideAllDynamicIcons(); 
             calculatingText.textContent = "Sintonizando con el cosmos..." 
             calculatingText.classList.remove('hidden'); 
             instructionText.textContent = "Sigue presionando... el destino espera...";
             playCalculatingSound();
+
+            if (isDarkOmenMusicPlaying && darkOmenMusicElement) {
+                darkOmenMusicElement.pause();
+                isDarkOmenMusicPlaying = false;
+            }
+            if (!isMusicPlaying && !userManuallyPausedMusic && backgroundMusic) {
+                 backgroundMusic.play().then(() => {
+                    isMusicPlaying = true;
+                    musicToggleButton.textContent = '🔇';
+                 }).catch(e => console.log("Autoplay de música de fondo bloqueado o fallido:", e));
+            }
         }
 
         async function handleInteractionEnd() { 
@@ -478,6 +606,10 @@ Ejemplo si la pregunta fue "¿Conseguiré el trabajo?": "Sobre ese trabajo... el
                 return;
             }
             
+            const personalityRoll = Math.random() * 100;
+            currentOraclePersonality = (personalityRoll <= 80) ? 'dark' : 'angelic';
+            console.log("Oracle Personality:", currentOraclePersonality); 
+
             calculatingText.classList.add('hidden');
             finalResult.classList.remove('hidden');
             askedQuestion.textContent = `Preguntaste: "${currentQuestion}"`;
@@ -490,7 +622,7 @@ Ejemplo si la pregunta fue "¿Conseguiré el trabajo?": "Sobre ese trabajo... el
             currentProbability = Math.floor(Math.random() * 101); 
             probabilityText.textContent = `${currentProbability}%`; 
 
-            const geminiResult = await getGeminiInterpretation(currentQuestion, currentProbability);
+            const geminiResult = await getGeminiInterpretation(currentQuestion, currentProbability, currentOraclePersonality);
             interpretationText.textContent = geminiResult.message; 
 
             instructionText.textContent = "El oráculo ha hablado. ¿Otra consulta?";
@@ -516,7 +648,7 @@ Ejemplo si la pregunta fue "¿Conseguiré el trabajo?": "Sobre ese trabajo... el
                  doubtIcon.classList.remove('hidden');
                 soundHint = 'mystery';
             } else if (currentProbability <= 90) { 
-                soundHint = 'neutral_calm';
+                soundHint = (currentOraclePersonality === 'angelic' && currentProbability > 75) ? 'positive_medium' : 'neutral_calm';
             } else { 
                 celebrationIcon.classList.remove('hidden');
                 soundHint = 'ultimate_fanfare';
@@ -575,6 +707,7 @@ Ejemplo si la pregunta fue "¿Conseguiré el trabajo?": "Sobre ese trabajo... el
 
         if (musicToggleButton && backgroundMusic) {
             musicToggleButton.addEventListener('click', () => {
+                userManuallyPausedMusic = backgroundMusic.paused; 
                 if (!audioStarted) { 
                     startAudioContext().then(() => {
                         toggleBackgroundMusic();
@@ -587,14 +720,26 @@ Ejemplo si la pregunta fue "¿Conseguiré el trabajo?": "Sobre ese trabajo... el
 
         function toggleBackgroundMusic() {
             if (!backgroundMusic) return;
+            if (isDarkOmenMusicPlaying && darkOmenMusicElement) { 
+                darkOmenMusicElement.pause();
+                isDarkOmenMusicPlaying = false;
+            }
+
             if (isMusicPlaying) { 
                 backgroundMusic.pause();
                 musicToggleButton.textContent = '🔊'; 
+                userManuallyPausedMusic = true;
             } else {
-                backgroundMusic.play().catch(e => console.error("Error al reproducir música:", e)); 
-                musicToggleButton.textContent = '🔇'; 
+                backgroundMusic.play().then(() => {
+                    musicToggleButton.textContent = '🔇'; 
+                    userManuallyPausedMusic = false;
+                }).catch(e => {
+                    console.error("Error al reproducir música de fondo:", e);
+                    musicToggleButton.textContent = '🔊'; 
+                    userManuallyPausedMusic = true; 
+                });
             }
-            isMusicPlaying = !isMusicPlaying; 
+            isMusicPlaying = !backgroundMusic.paused; 
         }
         
         extendedAdviceButton.addEventListener('click', async () => {
@@ -605,7 +750,7 @@ Ejemplo si la pregunta fue "¿Conseguiré el trabajo?": "Sobre ese trabajo... el
             suggestedLinkContainer.classList.add('hidden'); 
             suggestedLinkText.innerHTML = ''; 
 
-            const adviceResult = await getExtendedGeminiAdvice(currentQuestion, currentProbability, currentInterpretation);
+            const adviceResult = await getExtendedGeminiAdvice(currentQuestion, currentProbability, currentInterpretation, currentOraclePersonality);
             
             loadingExtendedAdvice.classList.add('hidden');
             extendedAdviceText.textContent = adviceResult.message; 
@@ -615,55 +760,78 @@ Ejemplo si la pregunta fue "¿Conseguiré el trabajo?": "Sobre ese trabajo... el
             }
         });
 
-        // --- Lógica del Juego de Completar Palabra y Presagio Oscuro ---
+        function normalizeText(text) {
+            return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        }
+
         function setupWordGame() {
             if (!currentQuestion) {
                 wordGameFeedback.textContent = "Primero debes consultar al oráculo principal.";
                 wordGameFeedback.className = "mt-2 text-sm text-red-400";
-                wordGameContainer.classList.remove('hidden'); // Mostrar para ver el mensaje
-                return false; // Indicar que no se pudo configurar
+                wordGameContainer.classList.remove('hidden');
+                return false; 
             }
-            currentWordGame = wordGamePhrases[Math.floor(Math.random() * wordGamePhrases.length)];
+
+            let randomIndex;
+            if (wordGamePhrases.length > 1) {
+                do {
+                    randomIndex = Math.floor(Math.random() * wordGamePhrases.length);
+                } while (randomIndex === lastWordGameIndex);
+            } else if (wordGamePhrases.length === 1) {
+                randomIndex = 0;
+            } else { 
+                wordGameFeedback.textContent = "No hay presagios disponibles en este momento.";
+                wordGameFeedback.className = "mt-2 text-sm text-amber-400";
+                wordGameContainer.classList.remove('hidden');
+                return false;
+            }
+            lastWordGameIndex = randomIndex;
+            currentWordGame = wordGamePhrases[randomIndex];
+            
             wordGamePhrase.textContent = currentWordGame.display;
             wordGameInput.value = '';
             wordGameFeedback.textContent = '';
             wordGameContainer.classList.remove('hidden');
-            darkOmenContainer.classList.add('hidden'); // Ocultar presagio si estaba visible
-            return true; // Juego configurado
+            darkOmenContainer.classList.add('hidden'); 
+            easterEggDisplay.classList.add('hidden'); // Asegurar que el easter egg esté oculto al iniciar el juego
+            return true; 
         }
 
         darkOmenButton.addEventListener('click', () => {
-            // Si el juego ya está visible, quizás no hacer nada o reiniciarlo
-            if (wordGameContainer.classList.contains('hidden')) {
-                setupWordGame();
-            } else {
-                // Opcional: reiniciar si ya está visible y se vuelve a clickear
-                 if(!setupWordGame()) return; // No continuar si no hay pregunta
+            if (setupWordGame()) { 
+                 if (isMusicPlaying && backgroundMusic) {
+                    backgroundMusic.pause();
+                 }
+                if (darkOmenMusicElement) {
+                    darkOmenMusicElement.currentTime = 0;
+                    darkOmenMusicElement.play().then(() => {
+                        isDarkOmenMusicPlaying = true;
+                    }).catch(e => console.error("Error al reproducir música del presagio:", e));
+                }
             }
         });
 
         wordGameCheckButton.addEventListener('click', () => {
-            if (!currentWordGame) return; // No hay juego activo
+            if (!currentWordGame) return; 
 
-            const userAnswer = wordGameInput.value.trim().toLowerCase();
-            const correctAnswer = currentWordGame.answer.toLowerCase();
+            const userAnswer = normalizeText(wordGameInput.value.trim()); 
+            const correctAnswer = normalizeText(currentWordGame.answer); 
 
             if (userAnswer === correctAnswer) {
                 wordGameFeedback.textContent = "Has descifrado el fragmento... El abismo se abre...";
                 wordGameFeedback.className = "mt-2 text-sm text-green-400";
-                // Ocultar el juego de palabras después de ganar
                 setTimeout(() => {
                     wordGameContainer.classList.add('hidden');
-                    getDarkOmenFromGemini(currentQuestion);
-                }, 1500); // Pequeña demora para leer el feedback
+                    getDarkOmenFromGemini(currentQuestion); // Esta función ahora maneja el easter egg
+                }, 1500); 
             } else {
                 wordGameFeedback.textContent = "Incorrecto. El destino es esquivo...";
                 wordGameFeedback.className = "mt-2 text-sm text-red-400";
+                wordGameInput.value = ''; 
                 wordGameInput.focus();
-                playSound('precaution_high'); // Sonido de error/advertencia
+                playSound('precaution_high'); 
             }
         });
-
 
         probabilityButton.addEventListener('mousedown', handleInteractionStart);
         probabilityButton.addEventListener('mouseup', handleInteractionEnd);
@@ -684,13 +852,27 @@ Ejemplo si la pregunta fue "¿Conseguiré el trabajo?": "Sobre ese trabajo... el
                 suggestedLinkText.innerHTML = '';
                 darkOmenContainer.classList.add('hidden');
                 darkOmenText.textContent = '';
-                wordGameContainer.classList.add('hidden'); // También ocultar juego de palabras
+                easterEggDisplay.classList.add('hidden');
+                wordGameContainer.classList.add('hidden'); 
                 hideAllDynamicIcons(); 
             }
             if (instructionText.textContent.includes("Sigue presionando") || instructionText.textContent.includes("El oráculo ha hablado")) { 
                 instructionText.textContent = "prepárate para saber si harás eso o no"; 
             }
         });
+
+        window.addEventListener('load', () => {
+            if (backgroundMusic && !userManuallyPausedMusic) { 
+                backgroundMusic.play().then(() => {
+                    isMusicPlaying = true;
+                    musicToggleButton.textContent = '🔇';
+                    console.log("Música de fondo iniciada automáticamente.");
+                }).catch(error => {
+                    console.log("Autoplay de música de fondo bloqueado por el navegador. Esperando interacción del usuario.", error);
+                });
+            }
+        });
+
     </script>
 </body>
 </html>
