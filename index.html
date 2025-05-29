@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¿Tal vez sí, o tal vez no? (Con Gemini)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #probabilityButton {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+        .decorative-icon {
+            position: absolute;
+            pointer-events: none;
+            animation: twinkle 3s infinite ease-in-out;
+        }
+        .decorative-icon.icon1 { top: -10px; left: -15px; font-size: 1.2em; animation-delay: 0s; }
+        .decorative-icon.icon2 { top: 0px; right: -20px; font-size: 0.9em; animation-delay: 0.5s; }
+        .decorative-icon.icon3 { bottom: -12px; left: 25%; font-size: 0.8em; animation-delay: 1s; }
+        .decorative-icon.icon4 { bottom: -5px; right: 15%; font-size: 1em; animation-delay: 1.5s; }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.4; transform: scale(0.8) rotate(-10deg); }
+            50% { opacity: 1; transform: scale(1.1) rotate(10deg); }
+        }
+        .animate-custom-shake {
+            animation: custom-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+            transform: translate3d(0, 0, 0);
+        }
+        @keyframes custom-shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+            40%, 60% { transform: translate3d(3px, 0, 0); }
+        }
+        /* Estilos para que el texto de Gemini respete saltos de línea y ajuste bien */
+        #interpretationText, #extendedAdviceText {
+            white-space: pre-wrap; 
+            word-break: break-word; 
+            text-align: center; /* Asegurar que el texto esté centrado */
+        }
+        /* Contenedor de resultados para que crezca con el contenido */
+        #resultContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-orange-300 via-amber-300 to-yellow-300 min-h-screen flex flex-col items-center py-8 px-4 text-gray-800">
+
+    <div class="bg-white/90 backdrop-blur-lg p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-orange-700 relative">
+                ¿Tal vez sí, o tal vez no?
+                <span class="decorative-icon icon1">✨</span>
+                <span class="decorative-icon icon2">🔸</span>
+                <span class="decorative-icon icon3">⭐</span>
+                <span class="decorative-icon icon4">🔮</span>
+            </h1>
+        </header>
+
+        <main>
+            <div class="mb-6">
+                <label for="questionInput" class="sr-only">Ingresa tu pregunta:</label>
+                <textarea id="questionInput" class="w-full p-3 border border-orange-400 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none text-lg placeholder-gray-500" rows="3" placeholder="Ej: ¿Debo adoptar otro gato?"></textarea>
+            </div>
+
+            <button id="probabilityButton" class="bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold text-5xl w-32 h-32 sm:w-36 sm:h-36 rounded-full shadow-lg transition-transform duration-100 ease-in-out active:scale-90 flex items-center justify-center mb-6 focus:outline-none focus:ring-4 focus:ring-orange-300 mx-auto">
+                %
+            </button>
+
+            <div id="resultContainer" class="p-4 bg-orange-50 rounded-lg shadow-inner w-full"> 
+                <div id="dynamicIconSlot" class="absolute top-2 right-2 h-8 w-8 sm:h-10 sm:w-10 opacity-80">
+                    <svg id="celebrationIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="hidden h-full w-full text-yellow-500 animate-pulse"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.624L16.5 21.75l-.398-1.126a3.375 3.375 0 00-2.455-2.456L12.75 18l1.126-.398a3.375 3.375 0 002.455-2.456L16.5 14.25l.398 1.126a3.375 3.375 0 002.456 2.456L20.25 18l-1.126.398a3.375 3.375 0 00-2.456 2.456z" /></svg>
+                    <svg id="doubtIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="hidden h-full w-full text-blue-500 animate-pulse"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>
+                    <svg id="screamerIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="hidden h-full w-full text-red-600"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                </div>
+
+                <p id="calculatingText" class="text-orange-600 text-xl font-semibold hidden animate-pulse">Sintonizando con el cosmos...</p>
+                <div id="finalResult" class="hidden w-full"> 
+                    <p id="askedQuestion" class="text-gray-700 mb-2 text-md sm:text-lg italic"></p>
+                    <p id="probabilityText" class="text-5xl font-bold text-orange-700"></p>
+                    <p id="interpretationText" class="text-sm text-amber-800 mt-2 font-medium"></p>
+                </div>
+                <p id="initialMessage" class="text-gray-500 text-md">Ingresa una pregunta y mantén presionado el botón.</p>
+
+                <button id="extendedAdviceButton" class="hidden mt-4 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-transform duration-100 ease-in-out active:scale-95 text-sm">
+                    ✨ Dame más sabiduría
+                </button>
+                <div id="extendedAdviceContainer" class="hidden mt-3 pt-3 border-t border-orange-200 w-full">
+                    <p id="loadingExtendedAdvice" class="text-amber-700 text-sm font-semibold hidden animate-pulse">El Oráculo busca en los confines del conocimiento...</p>
+                    <p id="extendedAdviceText" class="text-sm text-orange-700"></p>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="mt-8">
+            <p id="instructionText" class="text-sm text-gray-600 font-medium">prepárate para saber si harás eso o no</p>
+        </footer>
+    </div>
+
+    <script>
+        const questionInput = document.getElementById('questionInput');
+        const probabilityButton = document.getElementById('probabilityButton');
+        const calculatingText = document.getElementById('calculatingText'); 
+        const finalResult = document.getElementById('finalResult');
+        const askedQuestion = document.getElementById('askedQuestion');
+        const probabilityText = document.getElementById('probabilityText');
+        const interpretationText = document.getElementById('interpretationText'); 
+        const instructionText = document.getElementById('instructionText');
+        const initialMessage = document.getElementById('initialMessage');
+
+        const celebrationIcon = document.getElementById('celebrationIcon');
+        const doubtIcon = document.getElementById('doubtIcon');
+        const screamerIcon = document.getElementById('screamerIcon');
+
+        const extendedAdviceButton = document.getElementById('extendedAdviceButton');
+        const extendedAdviceContainer = document.getElementById('extendedAdviceContainer');
+        const loadingExtendedAdvice = document.getElementById('loadingExtendedAdvice');
+        const extendedAdviceText = document.getElementById('extendedAdviceText');
+
+        let isHolding = false;
+        let audioStarted = false;
+        let currentQuestion = "";
+        let currentProbability = 0;
+        let currentInterpretation = ""; 
+
+        const GEMINI_API_KEY = "AIzaSyDRCB8TMeVcvHcI7pA6D_xExLWZewgARtk"; 
+
+        const synth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sawtooth" }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.3 }, volume: -6 }).toDestination();
+        const noiseSynth = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }, volume: -10 }).toDestination();
+        const FMSynth = new Tone.FMSynth({ harmonicity: 3, modulationIndex: 10, detune: 0, oscillator: { type: "sine" }, envelope: { attack: 0.01, decay: 0.01, sustain: 1, release: 0.5 }, modulation: { type: "square" }, modulationEnvelope: { attack: 0.5, decay: 0, sustain: 1, release: 0.5 }, volume: -10 }).toDestination();
+
+        async function callGeminiAPI(prompt) {
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Error de Gemini API:', response.status, errorData);
+                    let apiErrorMessage = 'No se pudo obtener respuesta.';
+                    if (errorData && errorData.error && errorData.error.message) {
+                        apiErrorMessage = errorData.error.message;
+                    }
+                    return { error: true, message: `El Oráculo dice: "Interferencias cósmicas... (${apiErrorMessage})."` };
+                }
+
+                const data = await response.json();
+                
+                if (data.candidates && data.candidates.length > 0 &&
+                    data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
+                    return { error: false, message: data.candidates[0].content.parts[0].text.trim() };
+                } else {
+                    console.warn('Respuesta inesperada de Gemini API:', data);
+                    let fallbackMessage = `El Oráculo murmura algo ininteligible...`;
+                    if (data.error && data.error.message) {
+                        fallbackMessage = `El Oráculo está confundido: ${data.error.message}.`;
+                    }
+                    return { error: true, message: fallbackMessage };
+                }
+            } catch (error) {
+                console.error('Error al contactar Gemini API:', error);
+                return { error: true, message: `El Oráculo parece estar de vacaciones en otra dimensión.` };
+            }
+        }
+
+        async function getGeminiInterpretation(question, probability) {
+            // Prompt mejorado para que la interpretación esté más ligada a la pregunta
+            const prompt = `Eres un oráculo divertido, misterioso y algo excéntrico.
+La pregunta específica del consultante es: "${question}".
+La probabilidad calculada (de 0% a 100%) de que esto suceda es: ${probability}%.
+
+Tu tarea es dar una interpretación breve (1-3 frases), creativa y en español que esté DIRECTAMENTE RELACIONADA con el tema de la pregunta "${question}" y que también refleje el tono apropiado para la probabilidad de ${probability}%.
+
+Por ejemplo, si la pregunta es "¿Ganaré la lotería?" y la probabilidad es 5%, tu respuesta debería ser algo como "Sobre ganar la lotería... las estrellas susurran que es más probable que tu gato aprenda a hablar latín. Pero, ¿quién sabe? Los milagros ocurren, aunque raramente con billetes premiados."
+
+Asegúrate de que tu respuesta se sienta como si viniera de un oráculo y no de una IA.
+Tono según probabilidad:
+- Muy baja (0-20%): Desalentador, con humor negro, o una advertencia ominosa pero divertida, siempre conectada a la pregunta.
+- Baja (21-39%): Escéptico, misterioso, o sugiriendo que se necesitará un milagro para que suceda lo de la pregunta.
+- Media (40-60%): Ambiguo, juguetón, críptico, o resaltando la pura aleatoriedad del asunto en relación a la pregunta.
+- Alta (61-79%): Optimista con un toque de cautela sobre la pregunta, o un consejo peculiar relacionado.
+- Muy Alta (80-100%): Entusiasta, casi seguro de que lo de la pregunta sucederá, o una celebración con una pequeña y extraña condición ligada a la pregunta.
+Sé original, evita clichés. ¡Sorpréndeme!`;
+
+            interpretationText.textContent = 'El Oráculo Gemini consulta los astros distantes...';
+            finalResult.classList.remove('hidden'); 
+            probabilityText.textContent = `${probability}%`; 
+            askedQuestion.textContent = `Preguntaste: "${question}"`;
+            
+            const result = await callGeminiAPI(prompt);
+            currentInterpretation = result.message; 
+            return result; 
+        }
+
+        async function getExtendedGeminiAdvice(originalQuestion, prob, initialInterpretationFromOracle) {
+            if (initialInterpretationFromOracle.startsWith("El Oráculo dice: \"Interferencias cósmicas... (API key not valid")) {
+                 return {error: true, message: "El Oráculo no puede dar más consejos si la conexión inicial falló por la clave."};
+            }
+
+            const prompt = `Eres el mismo oráculo divertido y excéntrico. Ya diste una interpretación inicial.
+Pregunta original: "${originalQuestion}"
+Probabilidad calculada: ${prob}%
+Tu interpretación inicial fue: "${initialInterpretationFromOracle}" 
+Ahora, el consultante quiere más sabiduría. Basándote en todo lo anterior, ofrece UNO de los siguientes (¡sé creativo y mantén el tono!):
+1. Un breve consejo adicional o una reflexión más profunda sobre la situación (1-2 frases concisas).
+2. Un pequeño "ritual" o acción simbólica divertida y fácil que el consultante podría hacer en relación a su pregunta y la probabilidad (ej: "Si la probabilidad es baja, salta tres veces hacia atrás mientras cantas tu canción favorita para desafiar al destino. Si es alta, comparte una galleta con un extraño para sellar la buena fortuna.").
+3. Un proverbio o cita (puede ser inventada) que resuene con el momento.
+No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el consejo/ritual/proverbio.`;
+            
+            return await callGeminiAPI(prompt);
+        }
+        
+        function playSound(soundHint) { 
+            if (!audioStarted) return; 
+            const now = Tone.now();
+            try {
+                switch (soundHint) {
+                    case 'sad_fail': synth.triggerAttackRelease(["D3", "A2"], "4n", now); break;
+                    case 'comic_fail': synth.triggerAttackRelease("G3", "8n", now); synth.triggerAttackRelease("F#3", "8n", now + 0.15); synth.triggerAttackRelease("F3", "4n", now + 0.3); break;
+                    case 'precaution': FMSynth.triggerAttackRelease("A2", "8n", now); break;
+                    case 'precaution_high': FMSynth.triggerAttackRelease("C3", "16n", now); setTimeout(() => FMSynth.triggerAttackRelease("C3", "16n", now + 0.2), 100); break;
+                    case 'terror_sound': noiseSynth.volume.value = -5; noiseSynth.triggerAttackRelease("16n", now); setTimeout(() => noiseSynth.volume.value = -15, 200); break; 
+                    case 'mystery': case 'mystery_dark': synth.triggerAttackRelease(["A3", "Eb4", "G#4"], "4n", now, 0.5); break;
+                    case 'neutral_ping': synth.triggerAttackRelease("C5", "16n", now, 0.6); break;
+                    case 'comic_neutral': synth.triggerAttackRelease("C4", "16n", now); synth.triggerAttackRelease("E4", "16n", now + 0.1); synth.triggerAttackRelease("G3", "8n", now + 0.2); break;
+                    case 'neutral_calm': synth.triggerAttackRelease(["C4","E4","G4","C5"], "1n", now, 0.2); break;
+                    case 'positive_gentle': case 'positive_calm': case 'mystery_positive': synth.triggerAttackRelease(["G4", "B4", "D5"], "2n", now, 0.7); break;
+                    case 'comic_positive': synth.triggerAttackRelease("G4", "8n", now); synth.triggerAttackRelease("C5", "8n", now + 0.15); synth.triggerAttackRelease("E5", "4n", now + 0.3); break;
+                    case 'positive_medium': case 'positive_bright': case 'positive_strong': synth.triggerAttackRelease(["C4", "G4", "C5", "E5"], "2n", now, 0.8); break;
+                    case 'comic_very_positive': synth.triggerAttackRelease("C5", "16n", now); synth.triggerAttackRelease("E5", "16n", now + 0.05); synth.triggerAttackRelease("G5", "8n", now + 0.1); synth.triggerAttackRelease("C6", "4n", now + 0.2); break;
+                    case 'positive_fanfare_short': case 'super_positive': synth.triggerAttackRelease(["G4", "C5", "E5", "G5"], "1n", now, 0.9); break;
+                    case 'comic_super_positive': const t = now; ["C4","E4","G4","C5","E5","G5","C6"].forEach((note, i) => { synth.triggerAttackRelease(note, "32n", t + i * 0.05, 0.9); }); break;
+                    case 'positive_fanfare_long': case 'ultimate_positive': case 'super_positive_fanfare': case 'ultimate_fanfare': case 'comic_ultimate_win': const t2 = now; ["C4","E4","G4","C5"].forEach((note, i) => synth.triggerAttackRelease(note, "8n", t2 + i*0.1)); setTimeout(()=> {["E5","G5","C6"].forEach((note, i) => synth.triggerAttackRelease(note, "8n", t2 + 0.4 + i*0.1));}, 400); break;
+                    default: synth.triggerAttackRelease("C4", "8n", now);
+                }
+            } catch (e) { console.error("Error al reproducir sonido:", e); }
+        }
+        
+        let calculatingSoundLoop = null;
+        function playCalculatingSound() { 
+            if (!audioStarted) return;
+            if (calculatingSoundLoop) calculatingSoundLoop.stop().dispose();
+            calculatingSoundLoop = new Tone.Loop(time => { FMSynth.triggerAttackRelease("C2", "32n", time, 0.2); }, "8n").start(0);
+            Tone.Transport.start();
+        }
+        function stopCalculatingSound() { 
+            if (calculatingSoundLoop) { calculatingSoundLoop.stop().dispose(); calculatingSoundLoop = null; }
+        }
+
+        async function startAudioContext() {
+            if (!audioStarted) {
+                try { 
+                    await Tone.start();
+                    audioStarted = true;
+                    console.log("Contexto de audio iniciado.");
+                } catch (e) {
+                    console.error("Error al iniciar el contexto de audio de Tone.js:", e);
+                }
+            }
+        }
+
+        function hideAllDynamicIcons() {
+            celebrationIcon.classList.add('hidden');
+            doubtIcon.classList.add('hidden');
+            screamerIcon.classList.add('hidden');
+            screamerIcon.classList.remove('animate-custom-shake');
+        }
+
+        function handleInteractionStart() {
+            startAudioContext(); 
+            const question = questionInput.value.trim();
+            if (!question) { 
+                finalResult.classList.add('hidden'); calculatingText.classList.add('hidden'); initialMessage.classList.remove('hidden'); initialMessage.textContent = "☝️ Primero formula tu enigma existencial."; initialMessage.classList.add('text-red-500', 'font-semibold'); questionInput.focus(); isHolding = false; return;
+            }
+            isHolding = true;
+            initialMessage.classList.add('hidden'); 
+            finalResult.classList.add('hidden'); 
+            extendedAdviceButton.classList.add('hidden'); 
+            extendedAdviceContainer.classList.add('hidden'); 
+            extendedAdviceText.textContent = ''; 
+            hideAllDynamicIcons(); 
+            calculatingText.textContent = "Sintonizando con el cosmos..." 
+            calculatingText.classList.remove('hidden'); 
+            instructionText.textContent = "Sigue presionando... el destino espera...";
+            playCalculatingSound();
+        }
+
+        async function handleInteractionEnd() { 
+            if (!isHolding) return; 
+            stopCalculatingSound();
+            isHolding = false;
+            
+            currentQuestion = questionInput.value.trim(); 
+            if (!currentQuestion) { 
+                calculatingText.classList.add('hidden');
+                initialMessage.textContent = "☝️ El cosmos no puede responder a la nada."; 
+                initialMessage.classList.remove('hidden'); 
+                return;
+            }
+            
+            calculatingText.classList.add('hidden');
+            finalResult.classList.remove('hidden');
+            askedQuestion.textContent = `Preguntaste: "${currentQuestion}"`;
+            probabilityText.textContent = `Calculando Probabilidad...`;
+            interpretationText.textContent = 'Conectando con el Oráculo Gemini...';
+            hideAllDynamicIcons();
+
+            await new Promise(resolve => setTimeout(resolve, 300)); 
+
+            currentProbability = Math.floor(Math.random() * 101); 
+            probabilityText.textContent = `${currentProbability}%`; 
+
+            const geminiResult = await getGeminiInterpretation(currentQuestion, currentProbability);
+            interpretationText.textContent = geminiResult.message; 
+
+            instructionText.textContent = "El oráculo ha hablado. ¿Otra consulta?";
+            
+            if (!geminiResult.error) {
+                extendedAdviceButton.classList.remove('hidden');
+            } else {
+                extendedAdviceButton.classList.add('hidden'); 
+            }
+            
+            let soundHint;
+            hideAllDynamicIcons(); 
+
+            if (currentProbability < 20) { 
+                screamerIcon.classList.remove('hidden');
+                screamerIcon.classList.add('animate-custom-shake'); 
+                setTimeout(() => screamerIcon.classList.remove('animate-custom-shake'), 500);
+                soundHint = currentProbability <=10 ? 'sad_fail' : 'terror_sound'; 
+            } else if (currentProbability >= 40 && currentProbability <= 60) { 
+                doubtIcon.classList.remove('hidden');
+                soundHint = 'mystery';
+            } else if (currentProbability > 90) { 
+                celebrationIcon.classList.remove('hidden');
+                soundHint = 'ultimate_fanfare';
+            } else { 
+                if (currentProbability <= 39) soundHint = 'mystery_dark'; 
+                else if (currentProbability <= 75) soundHint = 'positive_gentle'; 
+                else if (currentProbability <= 90) soundHint = 'positive_medium'; 
+                else soundHint = 'neutral_ping'; 
+            }
+            
+            playSound(soundHint);
+        }
+
+        extendedAdviceButton.addEventListener('click', async () => {
+            extendedAdviceButton.classList.add('hidden'); 
+            extendedAdviceContainer.classList.remove('hidden');
+            loadingExtendedAdvice.classList.remove('hidden');
+            extendedAdviceText.textContent = '';
+
+            const adviceResult = await getExtendedGeminiAdvice(currentQuestion, currentProbability, currentInterpretation);
+            
+            loadingExtendedAdvice.classList.add('hidden');
+            extendedAdviceText.textContent = adviceResult.message; 
+        });
+
+        probabilityButton.addEventListener('mousedown', handleInteractionStart);
+        probabilityButton.addEventListener('mouseup', handleInteractionEnd);
+        probabilityButton.addEventListener('mouseleave', () => { if (isHolding) { handleInteractionEnd(); } });
+        probabilityButton.addEventListener('touchstart', (event) => { event.preventDefault(); handleInteractionStart(); }, { passive: false }); 
+        probabilityButton.addEventListener('touchend', handleInteractionEnd);
+
+        questionInput.addEventListener('input', () => { 
+            if (initialMessage.classList.contains('text-red-500')) { 
+                initialMessage.textContent = "Ingresa una pregunta y mantén presionado el botón."; 
+                initialMessage.classList.remove('text-red-500', 'font-semibold'); 
+                initialMessage.classList.remove('hidden'); 
+                calculatingText.classList.add('hidden'); 
+                finalResult.classList.add('hidden'); 
+                extendedAdviceButton.classList.add('hidden');
+                extendedAdviceContainer.classList.add('hidden');
+                hideAllDynamicIcons(); 
+            }
+            if (instructionText.textContent.includes("Sigue presionando") || instructionText.textContent.includes("El oráculo ha hablado")) { 
+                instructionText.textContent = "prepárate para saber si harás eso o no"; 
+            }
+        });
+    </script>
+</body>
+</html>
