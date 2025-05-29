@@ -42,7 +42,7 @@
             30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
             40%, 60% { transform: translate3d(3px, 0, 0); }
         }
-        #interpretationText, #extendedAdviceText, #suggestedLinkText {
+        #interpretationText, #extendedAdviceText, #suggestedLinkText, #darkOmenText, #wordGamePhrase {
             white-space: pre-wrap; 
             word-break: break-word; 
             text-align: center; 
@@ -54,25 +54,80 @@
             justify-content: center;
         }
         .suggested-link-button {
-            display: inline-block;
-            margin-top: 8px;
-            padding: 6px 12px;
-            background-color: #f59e0b; /* amber-500 */
-            color: white;
-            border-radius: 0.375rem; /* rounded-md */
-            text-decoration: none;
-            font-size: 0.875rem; /* text-sm */
-            font-weight: 600; /* font-semibold */
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
-            transition: background-color 0.2s ease-in-out;
+            display: inline-block; margin-top: 8px; padding: 6px 12px;
+            background-color: #f59e0b; color: white; border-radius: 0.375rem; 
+            text-decoration: none; font-size: 0.875rem; font-weight: 600; 
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); transition: background-color 0.2s ease-in-out;
         }
-        .suggested-link-button:hover {
-            background-color: #d97706; /* amber-600 */
+        .suggested-link-button:hover { background-color: #d97706; }
+        
+        #musicToggleButton {
+            position: fixed; bottom: 20px; right: 20px; background-color: #6b7280; 
+            color: white; padding: 10px; border-radius: 50%; cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 1000;
+        }
+        #musicToggleButton:hover { background-color: #4b5563; }
+
+        #darkOmenButton {
+            margin-top: 20px;
+            background-color: #1f2937; 
+            color: #fca5a5; 
+            border: 1px solid #ef4444; 
+        }
+        #darkOmenButton:hover {
+            background-color: #111827; 
+            color: #f87171; 
+        }
+        /* Estilos para el juego de completar palabra */
+        #wordGameContainer {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #374151; /* gray-700 */
+            border: 1px solid #ef4444; /* red-500 */
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+        #wordGamePhrase {
+            color: #fde68a; /* amber-200 */
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        #wordGameInput {
+            padding: 8px;
+            border-radius: 0.25rem;
+            border: 1px solid #eab308; /* yellow-500 */
+            background-color: #4b5563; /* gray-600 */
+            color: white;
+            margin-right: 10px;
+            width: calc(100% - 130px); /* Ajustar ancho */
+        }
+        #wordGameCheckButton {
+            padding: 8px 15px;
+            background-color: #eab308; /* yellow-500 */
+            color: #1f2937; /* gray-800 */
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        #wordGameCheckButton:hover {
+            background-color: #f59e0b; /* amber-500 */
+        }
+        #wordGameFeedback {
+            margin-top: 10px;
+            font-size: 0.9em;
         }
     </style>
 </head>
 <body class="bg-gradient-to-br from-orange-300 via-amber-300 to-yellow-300 min-h-screen flex flex-col items-center py-8 px-4 text-gray-800">
-
+   
+    <audio id="backgroundMusic" loop>
+        <source src="https://audionautix.com/Music/DarkMystery.mp3" type="audio/mpeg">
+        Tu navegador no soporta el elemento de audio.
+    </audio>
+    <button id="musicToggleButton">🔊</button> 
+    
     <div class="bg-white/90 backdrop-blur-lg p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
         <header class="mb-6">
             <h1 class="text-3xl font-bold text-orange-700 relative">
@@ -119,12 +174,28 @@
                         <p id="suggestedLinkText" class="text-xs text-gray-600"></p>
                     </div>
                 </div>
+                 <div id="darkOmenContainer" class="hidden mt-4 pt-4 border-t-2 border-red-700 w-full">
+                    <p id="loadingDarkOmen" class="text-red-700 text-sm font-semibold hidden animate-pulse">El Abismo susurra...</p>
+                    <p id="darkOmenText" class="text-sm text-red-800 font-mono"></p>
+                </div>
             </div>
         </main>
         
         <footer class="mt-8">
             <p id="instructionText" class="text-sm text-gray-600 font-medium">prepárate para saber si harás eso o no</p>
         </footer>
+
+        <button id="darkOmenButton" class="mt-6 w-full py-3 px-4 rounded-lg shadow-lg font-semibold text-sm transition-colors duration-150 ease-in-out">
+            No le des click
+        </button>
+
+        <div id="wordGameContainer" class="hidden mt-4">
+            <p class="text-red-300 text-sm mb-2">Has elegido asomarte al abismo. Completa el presagio para ver lo que te espera...</p>
+            <p id="wordGamePhrase" class="text-lg"></p>
+            <input type="text" id="wordGameInput" class="mt-2" placeholder="Escribe aquí la palabra...">
+            <button id="wordGameCheckButton" class="mt-2">Revelar Destino</button>
+            <p id="wordGameFeedback" class="mt-2 text-sm"></p>
+        </div>
     </div>
 
     <script>
@@ -150,14 +221,40 @@
         const suggestedLinkContainer = document.getElementById('suggestedLinkContainer');
         const suggestedLinkText = document.getElementById('suggestedLinkText');
 
+        // Elementos para el Presagio Oscuro y Juego de Palabras
+        const darkOmenButton = document.getElementById('darkOmenButton');
+        const wordGameContainer = document.getElementById('wordGameContainer');
+        const wordGamePhrase = document.getElementById('wordGamePhrase');
+        const wordGameInput = document.getElementById('wordGameInput');
+        const wordGameCheckButton = document.getElementById('wordGameCheckButton');
+        const wordGameFeedback = document.getElementById('wordGameFeedback');
+        const darkOmenContainer = document.getElementById('darkOmenContainer');
+        const loadingDarkOmen = document.getElementById('loadingDarkOmen');
+        const darkOmenText = document.getElementById('darkOmenText');
+        
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const musicToggleButton = document.getElementById('musicToggleButton');
+        let isMusicPlaying = false;
 
         let isHolding = false;
         let audioStarted = false;
         let currentQuestion = "";
         let currentProbability = 0;
         let currentInterpretation = ""; 
+        let currentWordGame = null;
 
         const GEMINI_API_KEY = "AIzaSyDRCB8TMeVcvHcI7pA6D_xExLWZewgARtk"; 
+
+        // --- Lista de Frases para el Juego de Palabras ---
+        const wordGamePhrases = [
+            { display: "No confíes en las s_ _ _ _ _ _ brillantes.", answer: "sonrisas" , fullPhrase: "No confíes en las sonrisas brillantes."},
+            { display: "El s_ _ _ _ _ _ _ a veces es el peor consejero.", answer: "silencio", fullPhrase: "El silencio a veces es el peor consejero."},
+            { display: "Las p_ _ _ _ _ _ _ tienen ecos inesperados.", answer: "palabras", fullPhrase: "Las palabras tienen ecos inesperados."},
+            { display: "Cuidado con los c_ _ _ _ _ _ que parecen demasiado rectos.", answer: "caminos", fullPhrase: "Cuidado con los caminos que parecen demasiado rectos."},
+            { display: "Un e_ _ _ _ _ puede ocultar más de lo que muestra.", answer: "espejo", fullPhrase: "Un espejo puede ocultar más de lo que muestra."},
+            { display: "La v_ _ _ _ _ se esconde tras muchos velos.", answer: "verdad", fullPhrase: "La verdad se esconde tras muchos velos."}
+        ];
+
 
         const synth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sawtooth" }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.3 }, volume: -6 }).toDestination();
         const noiseSynth = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }, volume: -10 }).toDestination();
@@ -205,19 +302,21 @@
         }
 
         async function getGeminiInterpretation(question, probability) {
-            const prompt = `Eres un oráculo divertido, misterioso y algo excéntrico.
+            const prompt = `Eres un oráculo muy particular: directo, a veces oscuro, y con un toque de humor negro y terror, a veces terror psicologico, tambien eres muy comico, ironico, y satirico, si notas alguna falta de ortografia en la pregunta, la recalcas con una broma y luego sigues siendo el oraculo.
 La pregunta específica del consultante es: "${question}".
 La probabilidad calculada (de 0% a 100%) de que esto suceda es: ${probability}%.
-Tu tarea es dar una interpretación breve (1-3 frases), creativa y en español que esté DIRECTAMENTE RELACIONADA con el tema de la pregunta "${question}" y que también refleje el tono apropiado para la probabilidad de ${probability}%.
-Por ejemplo, si la pregunta es "¿Ganaré la lotería?" y la probabilidad es 5%, tu respuesta debería ser algo como "Sobre ganar la lotería... las estrellas susurran que es más probable que tu gato aprenda a hablar latín. Pero, ¿quién sabe? Los milagros ocurren, aunque raramente con billetes premiados."
-Asegúrate de que tu respuesta se sienta como si viniera de un oráculo y no de una IA.
-Tono según probabilidad:
-- Muy baja (0-20%): Desalentador, con humor negro, o una advertencia ominosa pero divertida, siempre conectada a la pregunta.
-- Baja (21-39%): Escéptico, misterioso, o sugiriendo que se necesitará un milagro para que suceda lo de la pregunta.
-- Media (40-60%): Ambiguo, juguetón, críptico, o resaltando la pura aleatoriedad del asunto en relación a la pregunta.
-- Alta (61-79%): Optimista con un toque de cautela sobre la pregunta, o un consejo peculiar relacionado.
-- Muy Alta (80-100%): Entusiasta, casi seguro de que lo de la pregunta sucederá, o una celebración con una pequeña y extraña condición ligada a la pregunta.
-Sé original, evita clichés. ¡Sorpréndeme!`;
+
+Tu tarea es dar una interpretación breve (1-2 frases MÁXIMO), contundente y en español que esté DIRECTAMENTE RELACIONADA con el tema de la pregunta "${question}".
+El tono debe ser MUY específico según la probabilidad:
+- 0-10% (Extremadamente Baja): Respuesta con terror psicológico sutil, desesperanzadora y desgarradora. Ej: "Sobre '${question}'... las sombras susurran que ese camino solo lleva a un eco vacío. No mires atrás."
+- 11-25% (Muy Baja): Tono de advertencia seria, ominosa, casi una amenaza velada. Ej: "Preguntas por '${question}'. Hay puertas que es mejor no abrir. El ${probability}% de luz es devorado por la oscuridad restante."
+- 26-40% (Baja): Seria, directa, un poco desalentadora, sin rodeos. Ej: "Respecto a '${question}', el ${probability}% sugiere que las estrellas no están alineadas. Considera otros vientos."
+- 41-60% (Media): Ambiguo pero contundente, dejando una sensación de incertidumbre inquietante. Ej: "El ${probability}% para '${question}' flota en el éter. Ni sí, ni no, sino un quizás que pesa."
+- 61-75% (Alta): Seria pero con un matiz de posibilidad real, práctica. Ej: "Hay un ${probability}% de que '${question}' se materialice. El esfuerzo será tu catalizador."
+- 76-90% (Muy Alta): Contundente y positiva, casi una afirmación, pero sin excesiva efusividad. Ej: "Con un ${probability}%, '${question}' parece un destino casi sellado. Procede con confianza."
+- 91-100% (Casi Certeza/Certeza): Respuesta poética, elegante y muy alegre, celebrando la alta probabilidad. Ej: "¡Un ${probability}% glorioso para '${question}'! Los cosmos danzan a tu favor, tejiendo un manto de estrellas para tu éxito."
+
+No menciones que eres una IA. Evita ser filosófico o demasiado abstracto, se muy real, casi humano, y analiza las pregnutas para hacer que los que pregunten sientas inquietud o asombro, excepto en el rango 91-100%. Sé original.`;
 
             interpretationText.textContent = 'El Oráculo Gemini consulta los astros distantes...';
             finalResult.classList.remove('hidden'); 
@@ -234,26 +333,56 @@ Sé original, evita clichés. ¡Sorpréndeme!`;
                  return {error: true, message: "El Oráculo no puede dar más consejos si la conexión inicial falló por la clave."};
             }
 
-            const prompt = `Eres el mismo oráculo divertido y excéntrico. Ya diste una interpretación inicial.
+            const prompt = `Eres el mismo oráculo (directo, a veces oscuro, con humor negro, pero poético en la alegría extrema).
 Pregunta original: "${originalQuestion}"
 Probabilidad calculada: ${prob}%
-Tu interpretación inicial fue: "${initialInterpretationFromOracle}" 
-Ahora, el consultante quiere más sabiduría. Basándote en todo lo anterior, ofrece UNO de los siguientes (¡sé creativo y mantén el tono!):
-1. Un breve consejo adicional o una reflexión más profunda sobre la situación (1-2 frases concisas).
-2. Un pequeño "ritual" o acción simbólica divertida y fácil que el consultante podría hacer en relación a su pregunta y la probabilidad.
-3. Un proverbio o cita (puede ser inventada) que resuene con el momento.
+Tu interpretación inicial (concisa y contundente) fue: "${initialInterpretationFromOracle}" 
 
-Adicionalmente, si se te ocurre, puedes sugerir sutilmente algo extra y relevante para el momento, como:
-- Una canción (ej: "Para este momento, quizás una canción como '[Nombre Canción] de [Artista]'...").
-- Un tipo de video (ej: "Un video sobre '[tema del video]' podría ser inspirador.").
-- Una curiosidad o dato divertido (ej: "Como dato curioso, sabías que...").
-- Una pequeña historia o anécdota relacionada (ej: "Esto me recuerda a la vez que...").
-- La descripción de un artículo o imagen (ej: "Podrías buscar un artículo sobre '[tema]' o una imagen de '[descripción de imagen]' para reflexionar.").
-Esta sugerencia extra es opcional y debe ser breve y bien integrada con el consejo principal. No intentes crear enlaces HTML ni mostrar imágenes directamente.
+Ahora, el consultante quiere más sabiduría. Basándote en todo lo anterior, ofrece UNO de los siguientes, manteniendo el tono establecido por la probabilidad:
+1. Un breve consejo adicional o una reflexión más profunda y directa (1-2 frases).
+2. Un pequeño "ritual" o acción simbólica (seria, de terror psicologico o alegre según el caso) que el consultante podría hacer.
+3. Un proverbio o cita (puede ser inventada) que resuene con el momento y el tono.
+
+Adicionalmente, si se te ocurre, puedes sugerir sutilmente algo extra y relevante, manteniendo el tono:
+- Una canción (ej: "La banda sonora de este ${prob}% podría ser '[Nombre Canción]' de '[Artista]'...").
+- Un tipo de video (ej: "Para meditar sobre este ${prob}%, busca videos sobre '[tema del video]'.").
+- Una curiosidad o dato (ej: "Un dato para tu ${prob}%: sabías que...").
+- Una pequeña historia o anécdota (ej: "Este ${prob}% me recuerda a la vez que...").
+- La descripción de un artículo o imagen (ej: "Visualiza un artículo sobre '[tema]' o una imagen de '[descripción]' para este ${prob}%.").
+Esta sugerencia extra es opcional y debe ser breve. No crees enlaces HTML ni muestres imágenes.
 
 No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el consejo/ritual/proverbio y, si aplica, la sugerencia extra.`;
             
             return await callGeminiAPI(prompt);
+        }
+
+        async function getDarkOmenFromGemini(question) {
+            const prompt = `Eres la voz del Abismo, un oráculo de presagios oscuros y verdades incómodas.
+La pregunta del consultante fue: "${question}".
+Olvida cualquier probabilidad anterior. Ahora vas a revelar un presagio alternativo, una verdad más sombría.
+Tu presagio debe ser:
+1.  Breve (1-3 frases).
+2.  En español, con un tono de terror psicológico sutil, ominoso e inquietante.
+3.  Debe ofrecer una "probabilidad" o perspectiva diferente sobre "${question}", usualmente más negativa o incierta.
+4.  Debe incluir advertencias MUY ESPECÍFICAS sobre 2 o 3 cosas con las que el consultante debe tener extremo cuidado en relación a su pregunta. Estas advertencias deben ser concretas y perturbadoras.
+    Ejemplos de advertencias específicas (adapta al tema de la pregunta):
+    - "Cuidado con las palabras no dichas en habitaciones silenciosas."
+    - "No confíes en los reflejos después de medianoche."
+    - "El sonido de la lluvia sobre el cristal podría traer más que agua."
+    - "Un objeto perdido podría ser una invitación."
+    - "Presta atención a los sueños donde los números aparecen al revés."
+No digas que eres IA. Sé la personificación de una entidad antigua y perturbadora.
+Ejemplo si la pregunta fue "¿Conseguiré el trabajo?": "Sobre ese trabajo... el Abismo susurra un 13% de posibilidades de que sea lo que esperas, y un 87% de que sea una trampa de espejos. Ten cuidado con las ofertas demasiado generosas, con las sonrisas que no llegan a los ojos y con cualquier documento firmado bajo una luz parpadeante."`;
+
+            loadingDarkOmen.classList.remove('hidden');
+            darkOmenText.textContent = '';
+            darkOmenContainer.classList.remove('hidden');
+
+            const result = await callGeminiAPI(prompt);
+            
+            loadingDarkOmen.classList.add('hidden');
+            darkOmenText.textContent = result.message;
+            playSound('terror_sound'); 
         }
         
         function playSound(soundHint) { 
@@ -326,6 +455,9 @@ No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el con
             extendedAdviceText.textContent = ''; 
             suggestedLinkContainer.classList.add('hidden'); 
             suggestedLinkText.innerHTML = ''; 
+            darkOmenContainer.classList.add('hidden'); 
+            darkOmenText.textContent = '';
+            wordGameContainer.classList.add('hidden'); // Ocultar juego si estaba abierto
             hideAllDynamicIcons(); 
             calculatingText.textContent = "Sintonizando con el cosmos..." 
             calculatingText.classList.remove('hidden'); 
@@ -372,22 +504,22 @@ No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el con
             let soundHint;
             hideAllDynamicIcons(); 
 
-            if (currentProbability < 20) { 
+            if (currentProbability <= 25) { 
                 screamerIcon.classList.remove('hidden');
                 screamerIcon.classList.add('animate-custom-shake'); 
                 setTimeout(() => screamerIcon.classList.remove('animate-custom-shake'), 500);
-                soundHint = currentProbability <=10 ? 'sad_fail' : 'terror_sound'; 
-            } else if (currentProbability >= 40 && currentProbability <= 60) { 
-                doubtIcon.classList.remove('hidden');
+                soundHint = 'terror_sound'; 
+            } else if (currentProbability <= 40) { 
+                doubtIcon.classList.remove('hidden'); 
+                soundHint = 'precaution';
+            } else if (currentProbability <= 60) { 
+                 doubtIcon.classList.remove('hidden');
                 soundHint = 'mystery';
-            } else if (currentProbability > 90) { 
+            } else if (currentProbability <= 90) { 
+                soundHint = 'neutral_calm';
+            } else { 
                 celebrationIcon.classList.remove('hidden');
                 soundHint = 'ultimate_fanfare';
-            } else { 
-                if (currentProbability <= 39) soundHint = 'mystery_dark'; 
-                else if (currentProbability <= 75) soundHint = 'positive_gentle'; 
-                else if (currentProbability <= 90) soundHint = 'positive_medium'; 
-                else soundHint = 'neutral_ping'; 
             }
             
             playSound(soundHint);
@@ -395,13 +527,12 @@ No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el con
         
         function extractAndDisplaySuggestedLink(adviceText) {
             suggestedLinkContainer.classList.add('hidden');
-            suggestedLinkText.innerHTML = ''; // Limpiar contenido anterior
+            suggestedLinkText.innerHTML = ''; 
 
             let searchTerm = '';
             let linkType = '';
             let displayText = '';
 
-            // Priorizar búsqueda de canciones y videos para enlaces de YouTube
             let songMatch = adviceText.match(/canción como '([^']*)' de '([^']*)'/i) || adviceText.match(/canción como '([^']*)'/i) || adviceText.match(/podrías escuchar: ([^.]+)/i);
             let videoMatch = adviceText.match(/video sobre '([^']*)'/i) || adviceText.match(/video acerca de ([^.]+)/i);
 
@@ -416,14 +547,12 @@ No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el con
 
             if (searchTerm) {
                 const searchQuery = encodeURIComponent(searchTerm.trim());
-                // Corregido el enlace de YouTube
-                const youtubeUrl = `https://www.youtube.com/results?search_query=${searchQuery}`;
+                const youtubeUrl = `https://www.youtube.com/results?search_query=${searchQuery}`; 
                 suggestedLinkText.innerHTML = `${linkType}: <a href="${youtubeUrl}" target="_blank" class="suggested-link-button">Buscar "${searchTerm.trim()}" en YouTube</a>`;
                 suggestedLinkContainer.classList.remove('hidden');
             } else {
-                // Si no es canción/video, buscar otras sugerencias textuales
                 let curiosityMatch = adviceText.match(/dato curioso: ([^.]+)/i) || adviceText.match(/sabías que([^?]+[.?])/i);
-                let storyMatch = adviceText.match(/esto me recuerda a ([^.]+)/i);
+                let storyMatch = adviceText.match(/esto me recuerda a ([^.]+)/i) || adviceText.match(/me recuerda la historia de ([^.]+)/i) ;
                 let articleMatch = adviceText.match(/artículo sobre '([^']*)'/i) || adviceText.match(/artículo acerca de ([^.]+)/i);
                 let imageMatch = adviceText.match(/imagen de '([^']*)'/i) || adviceText.match(/imagen sobre ([^.]+)/i);
 
@@ -436,8 +565,7 @@ No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el con
                 } else if (imageMatch) {
                     displayText = `El Oráculo visualiza: Una imagen de "${imageMatch[1].trim()}"`;
                 }
-                // Podríamos añadir más patrones aquí si Gemini usa otras frases.
-
+                
                 if (displayText) {
                     suggestedLinkText.textContent = displayText;
                     suggestedLinkContainer.classList.remove('hidden');
@@ -445,7 +573,30 @@ No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el con
             }
         }
 
+        if (musicToggleButton && backgroundMusic) {
+            musicToggleButton.addEventListener('click', () => {
+                if (!audioStarted) { 
+                    startAudioContext().then(() => {
+                        toggleBackgroundMusic();
+                    });
+                } else {
+                    toggleBackgroundMusic();
+                }
+            });
+        }
 
+        function toggleBackgroundMusic() {
+            if (!backgroundMusic) return;
+            if (isMusicPlaying) { 
+                backgroundMusic.pause();
+                musicToggleButton.textContent = '🔊'; 
+            } else {
+                backgroundMusic.play().catch(e => console.error("Error al reproducir música:", e)); 
+                musicToggleButton.textContent = '🔇'; 
+            }
+            isMusicPlaying = !isMusicPlaying; 
+        }
+        
         extendedAdviceButton.addEventListener('click', async () => {
             extendedAdviceButton.classList.add('hidden'); 
             extendedAdviceContainer.classList.remove('hidden');
@@ -453,7 +604,6 @@ No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el con
             extendedAdviceText.textContent = '';
             suggestedLinkContainer.classList.add('hidden'); 
             suggestedLinkText.innerHTML = ''; 
-
 
             const adviceResult = await getExtendedGeminiAdvice(currentQuestion, currentProbability, currentInterpretation);
             
@@ -464,6 +614,56 @@ No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el con
                 extractAndDisplaySuggestedLink(adviceResult.message);
             }
         });
+
+        // --- Lógica del Juego de Completar Palabra y Presagio Oscuro ---
+        function setupWordGame() {
+            if (!currentQuestion) {
+                wordGameFeedback.textContent = "Primero debes consultar al oráculo principal.";
+                wordGameFeedback.className = "mt-2 text-sm text-red-400";
+                wordGameContainer.classList.remove('hidden'); // Mostrar para ver el mensaje
+                return false; // Indicar que no se pudo configurar
+            }
+            currentWordGame = wordGamePhrases[Math.floor(Math.random() * wordGamePhrases.length)];
+            wordGamePhrase.textContent = currentWordGame.display;
+            wordGameInput.value = '';
+            wordGameFeedback.textContent = '';
+            wordGameContainer.classList.remove('hidden');
+            darkOmenContainer.classList.add('hidden'); // Ocultar presagio si estaba visible
+            return true; // Juego configurado
+        }
+
+        darkOmenButton.addEventListener('click', () => {
+            // Si el juego ya está visible, quizás no hacer nada o reiniciarlo
+            if (wordGameContainer.classList.contains('hidden')) {
+                setupWordGame();
+            } else {
+                // Opcional: reiniciar si ya está visible y se vuelve a clickear
+                 if(!setupWordGame()) return; // No continuar si no hay pregunta
+            }
+        });
+
+        wordGameCheckButton.addEventListener('click', () => {
+            if (!currentWordGame) return; // No hay juego activo
+
+            const userAnswer = wordGameInput.value.trim().toLowerCase();
+            const correctAnswer = currentWordGame.answer.toLowerCase();
+
+            if (userAnswer === correctAnswer) {
+                wordGameFeedback.textContent = "Has descifrado el fragmento... El abismo se abre...";
+                wordGameFeedback.className = "mt-2 text-sm text-green-400";
+                // Ocultar el juego de palabras después de ganar
+                setTimeout(() => {
+                    wordGameContainer.classList.add('hidden');
+                    getDarkOmenFromGemini(currentQuestion);
+                }, 1500); // Pequeña demora para leer el feedback
+            } else {
+                wordGameFeedback.textContent = "Incorrecto. El destino es esquivo...";
+                wordGameFeedback.className = "mt-2 text-sm text-red-400";
+                wordGameInput.focus();
+                playSound('precaution_high'); // Sonido de error/advertencia
+            }
+        });
+
 
         probabilityButton.addEventListener('mousedown', handleInteractionStart);
         probabilityButton.addEventListener('mouseup', handleInteractionEnd);
@@ -482,6 +682,9 @@ No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el con
                 extendedAdviceContainer.classList.add('hidden');
                 suggestedLinkContainer.classList.add('hidden');
                 suggestedLinkText.innerHTML = '';
+                darkOmenContainer.classList.add('hidden');
+                darkOmenText.textContent = '';
+                wordGameContainer.classList.add('hidden'); // También ocultar juego de palabras
                 hideAllDynamicIcons(); 
             }
             if (instructionText.textContent.includes("Sigue presionando") || instructionText.textContent.includes("El oráculo ha hablado")) { 
@@ -491,3 +694,4 @@ No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el con
     </script>
 </body>
 </html>
+
