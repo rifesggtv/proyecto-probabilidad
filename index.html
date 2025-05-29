@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>¿Tal vez sí, o tal vez no?</title>
+    <title>¿Tal vez sí, o tal vez no? (Con Gemini)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
@@ -42,7 +42,7 @@
             30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
             40%, 60% { transform: translate3d(3px, 0, 0); }
         }
-        #interpretationText, #extendedAdviceText, #suggestedLinkText, #darkOmenText, #wordGamePhrase, #easterEggMessage {
+        #interpretationText, #extendedAdviceText, #suggestedLinkText, #darkOmenText, #wordGamePhrase {
             white-space: pre-wrap; 
             word-break: break-word; 
             text-align: center; 
@@ -125,13 +125,13 @@
         }
         #easterEggImage {
             max-width: 80%;
-            max-height: 200px; /* Ajustar altura máxima si es necesario */
+            max-height: 200px; 
             margin: 10px auto;
             border-radius: 0.375rem;
-            border: 2px solid #ef4444; /* Borde rojo para el easter egg */
+            border: 2px solid #ef4444; 
         }
         #easterEggMessage {
-            color: #ef4444; /* Rojo para el mensaje del easter egg */
+            color: #ef4444; 
             font-weight: bold;
         }
     </style>
@@ -263,7 +263,7 @@
         const musicToggleButton = document.getElementById('musicToggleButton');
         let isMusicPlaying = false; 
         let isDarkOmenMusicPlaying = false; 
-        let userManuallyPausedMusic = false; 
+        let userManuallyPausedMusic = true; // Iniciar como si el usuario la hubiera pausado, para que no intente sonar al cargar.
 
         let isHolding = false;
         let audioStarted = false;
@@ -340,7 +340,6 @@
             { display: "A veces la l_ _ es peor que la sombra.", answer: "luz", fullPhrase: "A veces la luz es peor que la sombra." }
         ];
 
-
         const synth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sawtooth" }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.3 }, volume: -6 }).toDestination();
         const noiseSynth = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }, volume: -10 }).toDestination();
         const FMSynth = new Tone.FMSynth({ harmonicity: 3, modulationIndex: 10, detune: 0, oscillator: { type: "sine" }, envelope: { attack: 0.01, decay: 0.01, sustain: 1, release: 0.5 }, modulation: { type: "square" }, modulationEnvelope: { attack: 0.5, decay: 0, sustain: 1, release: 0.5 }, volume: -10 }).toDestination();
@@ -389,16 +388,16 @@
         async function getGeminiInterpretation(question, probability, personality) {
             let prompt;
             if (personality === 'angelic') {
-                prompt = `Eres un oráculo de luz, un ser casi angelical lleno de esperanza y sabiduría gentil, pero aun asi, puede que seas algo oscuro para ser un angel.
+                prompt = `Eres un oráculo de luz, un ser angelical lleno de esperanza y sabiduría gentil.
 La pregunta específica del consultante es: "${question}".
 La probabilidad calculada (de 0% a 100%) de que esto suceda es: ${probability}%.
 Tu tarea es dar una interpretación breve (1-2 frases MÁXIMO), reconfortante y en español que esté DIRECTAMENTE RELACIONADA con el tema de la pregunta "${question}".
 El tono debe ser MUY específico según la probabilidad, pero SIEMPRE desde una perspectiva de luz y esperanza:
-- 0-20%: Ofrece consuelo, algo serio y de cuidado, con una perspectiva de aprendizaje o crecimiento, incluso si el resultado parece improbable. Ej: "Sobre '${question}'... aunque las estrellas muestren un camino arduo con este ${probability}%, recuerda que cada desafío es una joya disfrazada. La fe mueve montañas."
-- 21-40%: Inspira esperanza y fortaleza y enseña que hay que desconfiar de la oscuridad, sugiriendo que hay poder en la perseverancia. Ej: "Para '${question}', este ${probability}% es una invitación a cultivar tu luz interior. A veces, los milagros florecen donde menos se espera."
-- 41-60%: Positivo, sereno y paranoico, hablando de equilibrio y confianza. Ej: "Este ${probability}% para '${question}' vibra con armonía. Mantén tu corazón abierto y el camino se revelará."
-- 61-90%: Alegre, afirmativo y algo satirico, celebrando la buena fortuna. Ej: "¡Qué bella energía trae este ${probability}% para '${question}'! El universo conspira a tu favor."
-- 91-100%: Respuesta poética con un toque leve de maldad en tus palabras, etérea y profundamente alegre, celebrando la manifestación divina. Ej: "¡Un ${probability}% celestial para '${question}'! Los ángeles cantan y tejen un manto de luz dorada para tu triunfo inminente."
+- 0-20%: Ofrece consuelo y una perspectiva de aprendizaje o crecimiento, incluso si el resultado parece improbable. Ej: "Sobre '${question}'... aunque las estrellas muestren un camino arduo con este ${probability}%, recuerda que cada desafío es una joya disfrazada. La fe mueve montañas."
+- 21-40%: Inspira esperanza y fortaleza, sugiriendo que hay poder en la perseverancia. Ej: "Para '${question}', este ${probability}% es una invitación a cultivar tu luz interior. A veces, los milagros florecen donde menos se espera."
+- 41-60%: Positivo y sereno, hablando de equilibrio y confianza. Ej: "Este ${probability}% para '${question}' vibra con armonía. Mantén tu corazón abierto y el camino se revelará."
+- 61-90%: Alegre y afirmativo, celebrando la buena fortuna. Ej: "¡Qué bella energía trae este ${probability}% para '${question}'! El universo conspira a tu favor."
+- 91-100%: Respuesta poética, etérea y profundamente alegre, celebrando la manifestación divina. Ej: "¡Un ${probability}% celestial para '${question}'! Los ángeles cantan y tejen un manto de luz dorada para tu triunfo inminente."
 No menciones que eres una IA. Sé la personificación de una entidad de luz. Sé original y evita clichés.`;
             } else { 
                 prompt = `Eres un oráculo muy particular: directo, a veces oscuro, y con un toque de humor negro y terror, a veces terror psicologico, tambien eres muy comico, ironico, y satirico, si notas alguna falta de ortografia en la pregunta, la recalcas con una broma y luego sigues siendo el oraculo.
@@ -454,7 +453,6 @@ Adicionalmente, si se te ocurre, puedes sugerir sutilmente algo extra y relevant
 - Una curiosidad o dato.
 - Una pequeña historia o anécdota.
 - La descripción de un artículo o imagen.
-- una historia corta con un final perturbador (que este DIRECTAMENTE relaciionada con la pregunta)
 Esta sugerencia extra es opcional y debe ser breve. No crees enlaces HTML ni muestres imágenes.
 No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el consejo/ritual/proverbio y, si aplica, la sugerencia extra.`;
             
@@ -462,37 +460,33 @@ No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el con
         }
 
         async function getDarkOmenFromGemini(question) {
-            // Easter Egg Logic
-            if (currentOraclePersonality === 'dark' && Math.random() * 100 <= 5) {
+            darkOmenContainer.classList.remove('hidden'); // Asegurar que el contenedor principal esté visible
+            loadingDarkOmen.classList.remove('hidden');
+            darkOmenText.classList.add('hidden'); // Ocultar texto normal del presagio
+            easterEggDisplay.classList.add('hidden'); // Ocultar easter egg
+
+            if (currentOraclePersonality === 'dark' && Math.random() * 100 <= 5) { // 5% de probabilidad
                 loadingDarkOmen.classList.add('hidden');
-                darkOmenText.classList.add('hidden'); // Ocultar texto normal del presagio
                 easterEggDisplay.classList.remove('hidden');
                 
                 const randomImageIndex = Math.floor(Math.random() * easterEggImageUrls.length);
                 easterEggImage.src = easterEggImageUrls[randomImageIndex];
                 easterEggMessage.textContent = "ten cuidado con lo que preguntas porque el oraculo siempre te esta observando";
                 
-                darkOmenContainer.classList.remove('hidden'); // Asegurar que el contenedor principal esté visible
-                playSound('terror_sound'); // Sonido especial para el easter egg
-                return; // Terminar aquí para el easter egg
+                playSound('terror_sound'); 
+                return; 
             }
 
-            // Lógica normal del presagio oscuro si no se activa el easter egg
             const prompt = `Eres la voz del Abismo, un oráculo de presagios oscuros y verdades incómodas.
 La pregunta del consultante fue: "${question}".
 Olvida cualquier probabilidad anterior. Ahora vas a revelar un presagio alternativo, una verdad más sombría.
 Tu presagio debe ser:
-1.  Breve (1-5 frases).
+1.  Breve (1-3 frases).
 2.  En español, con un tono de terror psicológico sutil, ominoso e inquietante.
 3.  Debe ofrecer una "probabilidad" o perspectiva diferente sobre "${question}", usualmente más negativa o incierta.
 4.  Debe incluir advertencias MUY ESPECÍFICAS sobre 2 o 3 cosas con las que el consultante debe tener extremo cuidado en relación a su pregunta. Estas advertencias deben ser concretas y perturbadoras.
 No digas que eres IA. Sé la personificación de una entidad antigua y perturbadora.`;
-
-            loadingDarkOmen.classList.remove('hidden');
-            darkOmenText.textContent = '';
-            easterEggDisplay.classList.add('hidden'); // Asegurar que el easter egg esté oculto
-            darkOmenContainer.classList.remove('hidden');
-
+            
             const result = await callGeminiAPI(prompt);
             
             loadingDarkOmen.classList.add('hidden');
@@ -573,7 +567,7 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
             suggestedLinkText.innerHTML = ''; 
             darkOmenContainer.classList.add('hidden'); 
             darkOmenText.textContent = '';
-            easterEggDisplay.classList.add('hidden'); // Ocultar easter egg
+            easterEggDisplay.classList.add('hidden');
             wordGameContainer.classList.add('hidden'); 
             hideAllDynamicIcons(); 
             calculatingText.textContent = "Sintonizando con el cosmos..." 
@@ -585,11 +579,11 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
                 darkOmenMusicElement.pause();
                 isDarkOmenMusicPlaying = false;
             }
-            if (!isMusicPlaying && !userManuallyPausedMusic && backgroundMusic) {
+            if (backgroundMusic && backgroundMusic.paused && !isMusicPlaying && !userManuallyPausedMusic) {
                  backgroundMusic.play().then(() => {
                     isMusicPlaying = true;
                     musicToggleButton.textContent = '🔇';
-                 }).catch(e => console.log("Autoplay de música de fondo bloqueado o fallido:", e));
+                 }).catch(e => console.log("Autoplay de música de fondo bloqueado o fallido en handleInteractionStart:", e));
             }
         }
 
@@ -707,7 +701,7 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
 
         if (musicToggleButton && backgroundMusic) {
             musicToggleButton.addEventListener('click', () => {
-                userManuallyPausedMusic = backgroundMusic.paused; 
+                // userManuallyPausedMusic se actualiza *dentro* de toggleBackgroundMusic
                 if (!audioStarted) { 
                     startAudioContext().then(() => {
                         toggleBackgroundMusic();
@@ -720,26 +714,34 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
 
         function toggleBackgroundMusic() {
             if (!backgroundMusic) return;
-            if (isDarkOmenMusicPlaying && darkOmenMusicElement) { 
+            startAudioContext(); 
+
+            if (isDarkOmenMusicPlaying && darkOmenMusicElement) {
                 darkOmenMusicElement.pause();
+                darkOmenMusicElement.currentTime = 0;
                 isDarkOmenMusicPlaying = false;
             }
 
-            if (isMusicPlaying) { 
+            if (!backgroundMusic.paused) { 
                 backgroundMusic.pause();
-                musicToggleButton.textContent = '🔊'; 
+                isMusicPlaying = false;
                 userManuallyPausedMusic = true;
-            } else {
-                backgroundMusic.play().then(() => {
-                    musicToggleButton.textContent = '🔇'; 
-                    userManuallyPausedMusic = false;
-                }).catch(e => {
-                    console.error("Error al reproducir música de fondo:", e);
-                    musicToggleButton.textContent = '🔊'; 
-                    userManuallyPausedMusic = true; 
-                });
+                musicToggleButton.textContent = '🔊';
+            } else { 
+                const playPromise = backgroundMusic.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        isMusicPlaying = true;
+                        userManuallyPausedMusic = false;
+                        musicToggleButton.textContent = '🔇';
+                    }).catch(error => {
+                        console.error("Error al intentar reproducir música de fondo:", error);
+                        isMusicPlaying = false;
+                        userManuallyPausedMusic = true; 
+                        musicToggleButton.textContent = '🔊';
+                    });
+                }
             }
-            isMusicPlaying = !backgroundMusic.paused; 
         }
         
         extendedAdviceButton.addEventListener('click', async () => {
@@ -768,7 +770,9 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
             if (!currentQuestion) {
                 wordGameFeedback.textContent = "Primero debes consultar al oráculo principal.";
                 wordGameFeedback.className = "mt-2 text-sm text-red-400";
-                wordGameContainer.classList.remove('hidden');
+                wordGameContainer.classList.remove('hidden'); // Mostrar para ver el mensaje
+                darkOmenContainer.classList.add('hidden'); // Ocultar contenedor de presagio
+                easterEggDisplay.classList.add('hidden');
                 return false; 
             }
 
@@ -793,20 +797,28 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
             wordGameFeedback.textContent = '';
             wordGameContainer.classList.remove('hidden');
             darkOmenContainer.classList.add('hidden'); 
-            easterEggDisplay.classList.add('hidden'); // Asegurar que el easter egg esté oculto al iniciar el juego
+            easterEggDisplay.classList.add('hidden');
             return true; 
         }
 
         darkOmenButton.addEventListener('click', () => {
             if (setupWordGame()) { 
-                 if (isMusicPlaying && backgroundMusic) {
+                 if (!backgroundMusic.paused) { // Si la música principal está sonando
                     backgroundMusic.pause();
+                    // No actualizamos isMusicPlaying ni userManuallyPausedMusic aquí directamente
+                    // El botón de toggle principal sigue siendo la fuente de verdad para el estado deseado por el usuario
                  }
                 if (darkOmenMusicElement) {
                     darkOmenMusicElement.currentTime = 0;
-                    darkOmenMusicElement.play().then(() => {
-                        isDarkOmenMusicPlaying = true;
-                    }).catch(e => console.error("Error al reproducir música del presagio:", e));
+                    const playPromise = darkOmenMusicElement.play();
+                    if(playPromise !== undefined){
+                        playPromise.then(() => {
+                            isDarkOmenMusicPlaying = true;
+                        }).catch(e => {
+                            console.error("Error al reproducir música del presagio:", e);
+                            isDarkOmenMusicPlaying = false;
+                        });
+                    }
                 }
             }
         });
@@ -822,7 +834,7 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
                 wordGameFeedback.className = "mt-2 text-sm text-green-400";
                 setTimeout(() => {
                     wordGameContainer.classList.add('hidden');
-                    getDarkOmenFromGemini(currentQuestion); // Esta función ahora maneja el easter egg
+                    getDarkOmenFromGemini(currentQuestion); 
                 }, 1500); 
             } else {
                 wordGameFeedback.textContent = "Incorrecto. El destino es esquivo...";
@@ -860,20 +872,9 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
                 instructionText.textContent = "prepárate para saber si harás eso o no"; 
             }
         });
-
-        window.addEventListener('load', () => {
-            if (backgroundMusic && !userManuallyPausedMusic) { 
-                backgroundMusic.play().then(() => {
-                    isMusicPlaying = true;
-                    musicToggleButton.textContent = '🔇';
-                    console.log("Música de fondo iniciada automáticamente.");
-                }).catch(error => {
-                    console.log("Autoplay de música de fondo bloqueado por el navegador. Esperando interacción del usuario.", error);
-                });
-            }
-        });
-
+        
+        // No intentar autoplay al cargar la página, esperar interacción del usuario.
+        // window.addEventListener('load', () => { ... });
     </script>
 </body>
 </html>
-
