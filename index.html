@@ -263,10 +263,10 @@
         const musicToggleButton = document.getElementById('musicToggleButton');
         let isMusicPlaying = false; 
         let isDarkOmenMusicPlaying = false; 
-        let userManuallyPausedMusic = true; // Iniciar como si el usuario la hubiera pausado, para que no intente sonar al cargar.
+        // userManuallyPausedMusic ya no es necesaria con la nueva lógica de toggle
 
         let isHolding = false;
-        let audioStarted = false;
+        let audioStarted = false; // Para Tone.js y el primer intento de play()
         let currentQuestion = "";
         let currentProbability = 0;
         let currentInterpretation = ""; 
@@ -460,12 +460,12 @@ No repitas la probabilidad. Sé conciso y sorprendente. Responde solo con el con
         }
 
         async function getDarkOmenFromGemini(question) {
-            darkOmenContainer.classList.remove('hidden'); // Asegurar que el contenedor principal esté visible
+            darkOmenContainer.classList.remove('hidden'); 
             loadingDarkOmen.classList.remove('hidden');
-            darkOmenText.classList.add('hidden'); // Ocultar texto normal del presagio
-            easterEggDisplay.classList.add('hidden'); // Ocultar easter egg
+            darkOmenText.classList.add('hidden'); 
+            easterEggDisplay.classList.add('hidden'); 
 
-            if (currentOraclePersonality === 'dark' && Math.random() * 100 <= 5) { // 5% de probabilidad
+            if (currentOraclePersonality === 'dark' && Math.random() * 100 <= 5) { 
                 loadingDarkOmen.classList.add('hidden');
                 easterEggDisplay.classList.remove('hidden');
                 
@@ -575,16 +575,11 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
             instructionText.textContent = "Sigue presionando... el destino espera...";
             playCalculatingSound();
 
-            if (isDarkOmenMusicPlaying && darkOmenMusicElement) {
+            if (isDarkOmenMusicPlaying && darkOmenMusicElement && !darkOmenMusicElement.paused) {
                 darkOmenMusicElement.pause();
                 isDarkOmenMusicPlaying = false;
             }
-            if (backgroundMusic && backgroundMusic.paused && !isMusicPlaying && !userManuallyPausedMusic) {
-                 backgroundMusic.play().then(() => {
-                    isMusicPlaying = true;
-                    musicToggleButton.textContent = '🔇';
-                 }).catch(e => console.log("Autoplay de música de fondo bloqueado o fallido en handleInteractionStart:", e));
-            }
+            // No reanudar la música de fondo automáticamente aquí, dejarlo al control del usuario
         }
 
         async function handleInteractionEnd() { 
@@ -701,7 +696,6 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
 
         if (musicToggleButton && backgroundMusic) {
             musicToggleButton.addEventListener('click', () => {
-                // userManuallyPausedMusic se actualiza *dentro* de toggleBackgroundMusic
                 if (!audioStarted) { 
                     startAudioContext().then(() => {
                         toggleBackgroundMusic();
@@ -714,31 +708,29 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
 
         function toggleBackgroundMusic() {
             if (!backgroundMusic) return;
-            startAudioContext(); 
+            startAudioContext(); // Asegurar que el contexto esté iniciado
 
-            if (isDarkOmenMusicPlaying && darkOmenMusicElement) {
+            // Si la música del presagio está sonando, detenerla primero
+            if (isDarkOmenMusicPlaying && darkOmenMusicElement && !darkOmenMusicElement.paused) {
                 darkOmenMusicElement.pause();
                 darkOmenMusicElement.currentTime = 0;
                 isDarkOmenMusicPlaying = false;
             }
 
-            if (!backgroundMusic.paused) { 
+            if (!backgroundMusic.paused) { // Si está sonando, pausarla
                 backgroundMusic.pause();
                 isMusicPlaying = false;
-                userManuallyPausedMusic = true;
                 musicToggleButton.textContent = '🔊';
-            } else { 
+            } else { // Si está pausada, reproducirla
                 const playPromise = backgroundMusic.play();
                 if (playPromise !== undefined) {
                     playPromise.then(() => {
                         isMusicPlaying = true;
-                        userManuallyPausedMusic = false;
                         musicToggleButton.textContent = '🔇';
                     }).catch(error => {
                         console.error("Error al intentar reproducir música de fondo:", error);
                         isMusicPlaying = false;
-                        userManuallyPausedMusic = true; 
-                        musicToggleButton.textContent = '🔊';
+                        musicToggleButton.textContent = '�';
                     });
                 }
             }
@@ -770,8 +762,8 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
             if (!currentQuestion) {
                 wordGameFeedback.textContent = "Primero debes consultar al oráculo principal.";
                 wordGameFeedback.className = "mt-2 text-sm text-red-400";
-                wordGameContainer.classList.remove('hidden'); // Mostrar para ver el mensaje
-                darkOmenContainer.classList.add('hidden'); // Ocultar contenedor de presagio
+                wordGameContainer.classList.remove('hidden'); 
+                darkOmenContainer.classList.add('hidden'); 
                 easterEggDisplay.classList.add('hidden');
                 return false; 
             }
@@ -801,12 +793,14 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
             return true; 
         }
 
-        darkOmenButton.addEventListener('click', () => {
+        darkOmenButton.addEventListener('click', async () => { // Convertir a async
+            await startAudioContext(); // Asegurar que el contexto de audio esté listo
+
             if (setupWordGame()) { 
-                 if (!backgroundMusic.paused) { // Si la música principal está sonando
+                 if (!backgroundMusic.paused) { 
                     backgroundMusic.pause();
-                    // No actualizamos isMusicPlaying ni userManuallyPausedMusic aquí directamente
-                    // El botón de toggle principal sigue siendo la fuente de verdad para el estado deseado por el usuario
+                    isMusicPlaying = false;
+                    musicToggleButton.textContent = '🔊';
                  }
                 if (darkOmenMusicElement) {
                     darkOmenMusicElement.currentTime = 0;
@@ -873,8 +867,7 @@ No digas que eres IA. Sé la personificación de una entidad antigua y perturbad
             }
         });
         
-        // No intentar autoplay al cargar la página, esperar interacción del usuario.
-        // window.addEventListener('load', () => { ... });
     </script>
 </body>
 </html>
+�
